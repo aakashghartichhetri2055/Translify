@@ -29,5 +29,76 @@ Additional features of the app include the following
 
 - Privacy concerns: we will allow the user to decide whether or not they want their translations stored, and we will not use their data for any other purpose other than to display their recent translations
 - Stored translations: if allowed by the user, we will store their translations, so that they can look over them at a later time. This storing will be done in a secure manner
+
+## Problem 
+
+
+
+
+
+## Solution 
+
+
+
+
+## Key Features 
+
+
+
+
+## System Architecture 
+
+
+
+
+
+## Tech Stack
+
+
+
+
+
+
+## Data Flow
+
+
+
+
+
+## Repository Structure
+
+
+
+
+## Getting Started
+
+
+
+
+## Development Workflow
+
+
+
+
+## Security & Privacy
+
+
+
+
+
+## Performance Considerations
+
+
+
+
+## Roadmap
+
+
+
+
+
+## Team
+
+
   
 ...
