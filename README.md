@@ -58,6 +58,24 @@ Additional features of the app include the following:
 
 
 ## Key Features
+- Dual-Mode Translation Engine  
+  Supports both camera-based OCR translation and real-time speech-to-text translation within one integrated system.
+
+- Real-Time Processing Pipeline  
+  Designed for low-latency handling of image and audio inputs to provide fast translation results.
+
+- Modular Component Architecture  
+  Separates frontend, backend, image processing, speech processing, and translation components to ensure scalability and maintainability.
+
+- Self-Hosted Translation Service  
+  Uses a self-hosted LibreTranslate server to maintain control over translation logic and privacy.
+
+- Secure Data Handling  
+  User authentication and optional translation history are securely managed, with sensitive data excluded through environment configuration.
+
+- Extensible Language Support  
+  Initially supports English and Spanish, with architecture designed to easily integrate additional languages.
+
 
 ## System Architecture
 
