@@ -18,7 +18,7 @@ Capstone Project - Group 8
 - [Security & Privacy](#security--privacy)
 - [Performance Considerations](#performance-considerations)
 - [Roadmap](#roadmap)
-- [Team](#team)
+- [Team Members](#team-members)
 
 ---
 
@@ -95,6 +95,10 @@ Additional features of the app include the following:
 
 ## Roadmap
 
-## Team
+## Team Members
+- Kelvin Capriel Reyes
+- Rusha Limbu
+- Aakash Gharti Chhetri
+- Chin Tao Liu
 
 ...
