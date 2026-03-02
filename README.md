@@ -97,6 +97,20 @@ Additional features of the app include the following:
 ## Development Workflow
 
 ## Security & Privacy
+Translify is designed with user privacy and data security as core principles.
+
+### Data Handling
+- Image and audio data are processed only for translation purposes.
+- No translation data is used for analytics, advertising, or third-party sharing.
+
+### User Authentication
+- User credentials are securely stored.
+- Passwords are hashed before being saved to the database.
+
+### Optional Translation History
+- Users may opt-in to store translation history.
+- Stored translations are accessible only to the authenticated user.
+- Users can control whether their translations are saved.
 
 ## Performance Considerations
 
