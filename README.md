@@ -80,6 +80,13 @@ Additional features of the app include the following:
 ## System Architecture
 
 ## Tech Stack
+- **Frontend:** Flutter (Dart)
+- **Backend:** Python + FastAPI + Uvicorn
+- **Database:** PostgreSQL
+- **Image Processing:** OpenCV + Pytesseract
+- **Speech Processing:** SpeechRecognition + PyAudio
+- **Translation Engine:** Self-hosted LibreTranslate
+- **Data Format:** JSON
 
 ## Data Flow
 
