@@ -1,0 +1,64 @@
+{
+    // CONTAINER NAME
+    // This is the display name shown in VS Code's bottom-left corner
+    "name": "Translify",
+    
+    // BUILD CONFIGURATION
+    // Tells VS Code to build the container using the Dockerfile in .devcontainer folder
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    
+    // DEV CONTAINER FEATURES
+    // Pre-built, reusable components that add functionality to your container
+    "features": { // ADD Any Features Here ↓↓↓
+        // Adds Git version control system inside the container
+        "ghcr.io/devcontainers/features/git:1": {},
+        
+        // Adds common utilities like zsh, bash, curl, wget, etc.
+        "ghcr.io/devcontainers/features/common-utils:1": {}
+    },
+
+    // POST-CREATION COMMAND
+    // Runs automatically AFTER container is created
+    // This installs Python packages so they're ready when you start coding
+    "postCreateCommand": "pip install --upgrade pip && pip install opencv-python numpy pytesseract",
+
+    // VS CODE CUSTOMIZATIONS
+    // Settings specific to VS Code inside the container
+    "customizations": {
+        "vscode": {
+            // Extensions automatically installed in the container
+            "extensions": [
+                "ms-python.python",           // Python language support
+                "ms-python.vscode-pylance"    // Fast, feature-rich Python language server
+            ],
+            // VS Code settings inside the container
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python"  // Default Python path
+            }
+        }
+    },
+
+    // WORKSPACE CONFIGURATION
+    // Where your project files will live inside the container
+    "workspaceFolder": "/workspace",  // Default folder when opening terminal
+    
+    // Mounts your local project folder into the container
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+    // DOCKER RUN ARGUMENTS
+    // These are passed to 'docker run' when starting the container
+    "runArgs": [ // Add Any Access Here ↓↓↓
+        "--device=/dev/video0:/dev/video0",     // Maps host camera to container (for OpenCV)
+        "--group-add=video",                     // Adds container user to 'video' group for camera access
+        "-e", "DISPLAY=${env:DISPLAY}",          // Passes display variable for GUI apps
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"    // Mounts X11 socket for GUI display
+    ],
+
+    // ENVIRONMENT VARIABLES
+    // Sets environment variables inside the container
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"  // Passes host's DISPLAY to container for GUI
+    }
+}
