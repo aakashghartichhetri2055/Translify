@@ -1,27 +1,29 @@
 # Translify
-Real-Time Multimodal Translation System\
+
+Real-Time Multimodal Translation System  
 Capstone Project - Group 8
 
-A scalable, privacy-aware translation platform that enables real-time communication across languages using camera text recognition, speech translation, and mobile-first architecture.
+## Table of Contents
 
-# Table of Contents 
-## Overview 
-## Problem 
-## Solution 
-## Key Features 
-## System Architecture 
-## Tech Stack
-## Data Flow 
-## Repository Structure 
-## Getting Started 
-## Development Workflow 
-## Security & Privacy 
-## Performance Considerations 
-## Roadmap 
-## Team 
+- [Overview](#overview)
+- [Problem](#problem)
+- [Solution](#solution)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Tech Stack](#tech-stack)
+- [Data Flow](#data-flow)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+- [Development Workflow](#development-workflow)
+- [Security & Privacy](#security--privacy)
+- [Performance Considerations](#performance-considerations)
+- [Roadmap](#roadmap)
+- [Team Members](#team-members)
 
+---
 
-# Overview 
+## Overview
+
 - Camera-Based Text Translation: Users can simply point their camera at text, and the app detects, reads, and overlays the translation directly on the screen. This feature will be useful for translation in everyday scenarios such as menus, signs, and documents.
 - Conversational Speech Translation: Two users will be able to communicate with each other using one phone. They will choose their languages. A user will then speak into the microphone. The app will transcribe the speech into text, translate it, and display the translation on the phone for the other person to read.
 - Base Languages: At the very minimum, we plan to include functionality for English and Spanish. However, we very much expect to be able to introduce more languages
@@ -31,99 +33,93 @@ Additional features of the app include the following
 - Privacy concerns: we will allow the user to decide whether or not they want their translations stored, and we will not use their data for any other purpose other than to display their recent translations
 - Stored translations: if allowed by the user, we will store their translations, so that they can look over them at a later time. This storing will be done in a secure manner
 
-<<<<<<< HEAD
-Translify uses a modular architecture with a flutter frontend, fastAPI backend, and dedicated image, speech, and translation components working together 
-=======
+## Problem
 
-# NOTE:
-- 2/25/26: Repo created
+In today’s world, there are many languages in use. According to New York State's Office of General Services, there are over 800 languages used in the City. Chances are high that you run into a situation that you do not understand because of language barriers.Consider the following situations:
 
->>>>>>> 83bcf9a (added Note section to README)
+- Someone asks you for directions to a tourist attraction. You want to help but can’t due to not understanding their question
+- You see a sign outside of a shop advertising something. However, you can’t understand what is being advertised because it is in a different language
+- You visit a city in a different country. Despite your best attempts to learn the language beforehand, all of that knowledge flows out of your mind the moment you step foot into the city.
+- You have binding legal documents in front of you, in a different language.
 
-# Problem 
+The solution for when you don’t know a language, is to translate between languages. In the past, this was done usually through a person who knew both your language, and the language of the content that you want to understand. However, this method of translation has some problems: relying on such a person to exist and be physically with you in the first place, possible slow translation, and privacy concerns.
 
+Nowadays, translation is done through online services and applications such as Google Translate or DeepL Translate. These services provide quick and free translation into a multitude of languages. However, these services have their problems: there could be unnecessary features within these apps that aren’t needed, unclear layouts that may further complicate translation, and additional privacy concerns, such as the storing of sensitive data.
 
+## Solution
+We propose Translify: a mobile app that will facilitate easy translation between languages, in the form of the following features below:
+- Camera-Based Text Translation: Users can simply point their camera at text, and the app detects, reads, and overlays the translation directly on the screen. This feature will be useful for translation in everyday scenarios such as menus, signs, and documents. 
+- Conversational Speech Translation: Two users will be able to communicate with each other using one phone. They will choose their languages. A user will then speak into the microphone. The app will transcribe the speech into text, translate it, and display the translation on the phone for the other person to read. 
+- Base Languages: At the very minimum, we plan to include functionality for English and Spanish. However, we very much expect to be able to introduce more languages
 
-# Solution 
-
-
-
-# Key Features 
-
-
-
-
-# System Architecture 
-
+Additional features of the app include the following:
+- Privacy concerns: we will allow the user to decide whether or not they want their translations stored, and we will not use their data for any other purpose other than to display their recent translations
+- Stored translations: if allowed by the user, we will store their translations, so that they can look over them at a later time. This storing will be done in a secure manner
 
 
+## Key Features
+- Dual-Mode Translation Engine  
+  Supports both camera-based OCR translation and real-time speech-to-text translation within one integrated system.
+
+- Real-Time Processing Pipeline  
+  Designed for low-latency handling of image and audio inputs to provide fast translation results.
+
+- Modular Component Architecture  
+  Separates frontend, backend, image processing, speech processing, and translation components to ensure scalability and maintainability.
+
+- Self-Hosted Translation Service  
+  Uses a self-hosted LibreTranslate server to maintain control over translation logic and privacy.
+
+- Secure Data Handling  
+  User authentication and optional translation history are securely managed, with sensitive data excluded through environment configuration.
+
+- Extensible Language Support  
+  Initially supports English and Spanish, with architecture designed to easily integrate additional languages.
 
 
-# Tech Stack
+## System Architecture
 
+## Tech Stack
+- **Frontend:** Flutter (Dart)
+- **Backend:** Python + FastAPI + Uvicorn
+- **Database:** PostgreSQL
+- **Image Processing:** OpenCV + Pytesseract
+- **Speech Processing:** SpeechRecognition + PyAudio
+- **Translation Engine:** Self-hosted LibreTranslate
+- **Data Format:** JSON
 
+## Data Flow
 
+## Repository Structure
 
+## Getting Started
 
-# Data Flow 
+## Development Workflow
 
+## Security & Privacy
+Translify is designed with user privacy and data security as core principles.
 
+### Data Handling
+- Image and audio data are processed only for translation purposes.
+- No translation data is used for analytics, advertising, or third-party sharing.
 
+### User Authentication
+- User credentials are securely stored.
+- Passwords are hashed before being saved to the database.
 
-
-# Repository Structure 
-
-
-
-
-
-# Getting Started 
-
-
-
-
-
-# Development Workflow 
-
-
-
-
-
-# Security & Privacy 
-
-
-
-
+### Optional Translation History
+- Users may opt-in to store translation history.
+- Stored translations are accessible only to the authenticated user.
+- Users can control whether their translations are saved.
 
 ## Performance Considerations
 
+## Roadmap
 
-
-
-# Roadmap 
-
-
-
-
-
-
-# Team 
-## Group 8
+## Team Members
 - Kelvin Capriel Reyes
 - Rusha Limbu
 - Aakash Gharti Chhetri
 - Chin Tao Liu
 
-# Project goals
-- Build real-time multimodal translation system
-- Demonstrate scalable architecture
-- Apply AI pipelines in mobile environment
-- Showcase full-stack engineering practices
-
-# Engineering Focus
-- This project demonstrates:
-- Mobile + backend integration
-- Multimodal AI pipelines
-- Service architecture design
-- Privacy-first engineering
-- Real-time systems
+...
