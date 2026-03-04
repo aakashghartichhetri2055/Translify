@@ -22,7 +22,7 @@
     // POST-CREATION COMMAND
     // Runs automatically AFTER container is created
     // This installs Python packages so they're ready when you start coding
-    "postCreateCommand": "pip install --upgrade pip && pip install opencv-python numpy pytesseract",
+    "postCreateCommand": "pip install --upgrade pip && pip install opencv-python numpy pytesseract fastapi uvicorn",
 
     // VS CODE CUSTOMIZATIONS
     // Settings specific to VS Code inside the container
@@ -50,15 +50,10 @@
     // DOCKER RUN ARGUMENTS
     // These are passed to 'docker run' when starting the container
     "runArgs": [ // Add Any Access Here ↓↓↓
-        "--device=/dev/video0:/dev/video0",     // Maps host camera to container (for OpenCV)
-        "--group-add=video",                     // Adds container user to 'video' group for camera access
-        "-e", "DISPLAY=${env:DISPLAY}",          // Passes display variable for GUI apps
-        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"    // Mounts X11 socket for GUI display
+        "--device=/dev/video0:/dev/video0", // Maps host camera to container (for OpenCV)
+        "--group-add=video",                 // Adds container user to 'video' group for camera access
+        "--security-opt=seccomp=unconfined"  // If you encounter permission issues
     ],
 
-    // ENVIRONMENT VARIABLES
-    // Sets environment variables inside the container
-    "containerEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}"  // Passes host's DISPLAY to container for GUI
-    }
+    "forwardPorts": [8000]
 }

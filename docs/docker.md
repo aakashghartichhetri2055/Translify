@@ -14,3 +14,9 @@
 # 2. Add neccessary access permission, features, extensions in the devcontainer.json
 # 3. Save the changes, press F1 search for "Dev Containers: Rebuild Container" to reload with new changes
 # 4. Any tools version should be written in requirement.txt
+
+## TO Run the camera with fastapi
+1. go to your directory for example: cd imageprocessing
+2. run this command in terminal uvicorn "filename":app --host 0.0.0.0 --port 8000 --reload
+3. reple "filename with your file's name for example filename is ocr.py then you put ocr:app
+4. then go to your browser http://localhost:8000/
