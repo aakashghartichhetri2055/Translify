@@ -113,13 +113,13 @@ Translify is designed with user privacy and data security as core principles.
 - Users can control whether their translations are saved.
 
 ## Performance Considerations
-To keep Translify fast and responsive, the backend follows a few simple performance practices.
+To keep Translify fast and responsive, both the frontend and backend follow simple performance practices.
 - Process small text segments instead of large blocks to translate faster.
-- Reuse previous translations by caching results in the database, reducing repeated work.
-- Limit input size to prevent very large requests from slowing down the server.
-- Run translation locally using offline models to avoid network delays from external services.
-Use efficient database queries to quickly retrieve stored translations.
-- These steps help ensure the system delivers quick, reliable translations for both image and speech inputs while keeping the backend stable and efficient.
+- Cache previous translations so the system can reuse results instead of translating the same text again.
+- Limit input size to prevent very large requests from slowing down the application.
+- Use efficient communication between the mobile app and backend to reduce unnecessary network requests.
+- Run translation locally on the backend to avoid delays from external services.
+- These practices help ensure the app provides quick and smooth translations for camera text and speech conversations.
 
 ## Roadmap
 
