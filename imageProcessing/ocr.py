@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from contextlib import asynccontextmanager
 import cv2
 import uvicorn
+import pytesseract
 
 class Camera:
     # This start the camera
@@ -38,6 +39,12 @@ class Camera:
             return None
         # read the frame
         ret, frame = self.cap.read()
+
+        # Text detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        text = pytesseract.image_to_string(gray)
+        print(text)
+        cv2.putText(frame, text, (30,30), cv2.FONT_HERSHEY_PLAIN, 2.5, (0,255,0), 2, cv2.LINE_AA)
 
         # if ret is false or no frame is read, fail to read
         if not ret or frame is None:
