@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:translify/views/Authentication_Views/login_view.dart';
+import 'package:translify/widgets/button.dart';
+import 'package:translify/widgets/text_input.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,7 +33,8 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: LoginView(),
+      //home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -56,6 +60,23 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
+  // Testing the form
+  final TextEditingController _emailInput = TextEditingController();
+  final TextEditingController _passwordInput = TextEditingController();
+  final _LoginFormKey = GlobalKey<FormState>();
+
+  String? formValidator(String? value) {
+    if (value == null) {
+      return "can't be empty";
+    }
+
+    if (value.length == 10) {
+      return "can't be of length 10";
+    }
+
+    return null;
+  }
+
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -76,6 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+      backgroundColor: Color.fromRGBO(15, 15, 15, 1),
       appBar: AppBar(
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
@@ -108,6 +130,30 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            Form(
+              key: _LoginFormKey,
+              child: Column(
+                children: [
+                  // a email input
+                  TextInput(
+                    controller: _emailInput,
+                    hint: "your@mail.com",
+                    label: "Email",
+                    validator: formValidator,
+                  ),
+
+                  TextInput(
+                    controller: _passwordInput,
+                    hint: "Password",
+                    label: "Password",
+                    validator: formValidator,
+                    obscure: true,
+                  ),
+
+                  Button(text: "gilled out text?????", action: () => {}),
+                ],
+              ),
             ),
           ],
         ),

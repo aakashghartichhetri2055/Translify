@@ -30,7 +30,7 @@ class TextInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * .5,
+      width: MediaQuery.of(context).size.width * .7,
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
