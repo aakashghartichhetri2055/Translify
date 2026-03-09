@@ -9,11 +9,12 @@ Currently targeting Android only. IOS planned if time permits.
 ## Feature Roadmap
 
 1. Add basic screens for everything
-   - User authentication: login, signup, new user page
+   - ~~User authentication: login, signup~~, new user page
    - Main landing page
    - Camera translation page
    - Conversation translation page
    - Settings Page
+   - Add go_router package to facilitate pages
 2. Add cameara input functionality to Camera translation page
 3. Add microphone input functionality to Conversation translation page
 4. Add functionality to other pages
