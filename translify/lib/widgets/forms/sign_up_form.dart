@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:translify/widgets/text_input.dart';
 import 'package:translify/validation/validation.dart';
+import 'package:translify/widgets/text_input.dart';
 
-class LoginForm extends StatelessWidget {
+class SignUpForm extends StatelessWidget {
   final TextEditingController email;
   final TextEditingController password;
+  final TextEditingController confirmPassword;
   final GlobalKey<FormState> formKey;
 
-  const LoginForm({
+  const SignUpForm({
     super.key,
     required this.email,
     required this.password,
+    required this.confirmPassword,
     required this.formKey,
   });
 
@@ -35,6 +37,17 @@ class LoginForm extends StatelessWidget {
               hint: "Password",
               label: "Password",
               validator: Validators.password,
+              obscure: true,
+            ),
+
+            SizedBox(height: MediaQuery.of(context).size.height * .02),
+
+            TextInput(
+              controller: confirmPassword,
+              hint: "Confirm your password",
+              label: "Confirm Password",
+              validator: Validators.confirmPassword(password),
+              obscure: true,
             ),
           ],
         ),

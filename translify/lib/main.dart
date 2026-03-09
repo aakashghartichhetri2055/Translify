@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:translify/views/Authentication_Views/login_view.dart';
+import 'package:translify/views/Authentication_Views/sign_up_view.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/text_input.dart';
 
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: LoginView(),
+      home: SignUpView(),
       //home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }

@@ -1,34 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:translify/widgets/button.dart';
-import 'package:translify/widgets/forms/login_form.dart';
+import 'package:translify/widgets/forms/sign_up_form.dart';
 
-class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+class SignUpView extends StatefulWidget {
+  const SignUpView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
+  State<SignUpView> createState() => _SignUpViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
-  // Text controllers for Login Form
+class _SignUpViewState extends State<SignUpView> {
+  // Text controllers for Sign Up Form
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   // Global Key for Form
-  final _loginFormKey = GlobalKey<FormState>();
+  final _signUpFormKey = GlobalKey<FormState>();
 
   // Dispose of the text controllers when changing views
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  // Function for when Login button is clicked
-  void loginButtonTapped() {
+  // For when the Sign Up Button is clicked
+  void signUpButtonTapped() {
     // Validate form content first
-    if (!_loginFormKey.currentState!.validate()) {
+    if (!_signUpFormKey.currentState!.validate()) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Something went wrong')));
@@ -50,14 +52,6 @@ class _LoginViewState extends State<LoginView> {
     // Else, inform user of bad response
   }
 
-  // Function for when Sign Up button is clicked
-  // TODO: Add navigation here
-  void signUpButtonTapped() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cool!'), backgroundColor: Colors.red),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,22 +68,18 @@ class _LoginViewState extends State<LoginView> {
 
           SizedBox(height: MediaQuery.of(context).size.height * .1),
 
-          // Login Form
-          LoginForm(
+          // Sign Up Form
+          SignUpForm(
             email: _emailController,
             password: _passwordController,
-            formKey: _loginFormKey,
+            confirmPassword: _confirmPasswordController,
+            formKey: _signUpFormKey,
           ),
 
           SizedBox(height: MediaQuery.of(context).size.height * .05),
 
           // Button to confirm the signup
-          Button(text: "Log In!", action: loginButtonTapped),
-
-          SizedBox(height: MediaQuery.of(context).size.height * .05),
-
-          // Button to Take You to Sign Up Page
-          Button(text: "Sign Up", action: signUpButtonTapped),
+          Button(text: "Sign Up!", action: signUpButtonTapped),
         ],
       ),
     );
