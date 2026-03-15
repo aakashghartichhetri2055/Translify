@@ -35,6 +35,7 @@ class LoginForm extends StatelessWidget {
               hint: "Password",
               label: "Password",
               validator: Validators.password,
+              obscure: true,
             ),
           ],
         ),

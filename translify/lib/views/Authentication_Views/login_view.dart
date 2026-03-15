@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/forms/login_form.dart';
 import 'package:translify/colors/colors.dart';
+import 'package:translify/router/routes.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -27,12 +29,13 @@ class _LoginViewState extends State<LoginView> {
   }
 
   // Function for when Login button is clicked
-  void loginButtonTapped() {
+  void loginButtonTapped(BuildContext context) {
     // Validate form content first
     if (!_loginFormKey.currentState!.validate()) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Something went wrong')));
+      return;
     }
 
     // Send form content to backend
@@ -41,22 +44,16 @@ class _LoginViewState extends State<LoginView> {
     const response = true;
 
     // If response is good, save credentials and move user to next page (Homepage)
-    // TODO: Add navigation here
     if (response) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cool!')));
+      context.go(AppRoutes.afterNewUser);
     }
 
     // Else, inform user of bad response
   }
 
   // Function for when Sign Up button is clicked
-  // TODO: Add navigation here
-  void signUpButtonTapped() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cool!'), backgroundColor: Colors.red),
-    );
+  void signUpButtonTapped(BuildContext context) {
+    context.push(AppRoutes.signUp);
   }
 
   @override
@@ -90,7 +87,7 @@ class _LoginViewState extends State<LoginView> {
           // Button to confirm the signup
           Button(
             text: "Log In!",
-            action: loginButtonTapped,
+            action: () => {loginButtonTapped(context)},
             backgroundColor: TranslifyColors.adminButtonColor,
             textColor: TranslifyColors.adminButtonTextColor,
           ),
@@ -100,7 +97,7 @@ class _LoginViewState extends State<LoginView> {
           // Button to Take You to Sign Up Page
           Button(
             text: "Sign Up",
-            action: signUpButtonTapped,
+            action: () => {signUpButtonTapped(context)},
             backgroundColor: TranslifyColors.adminButtonColor,
             textColor: TranslifyColors.adminButtonTextColor,
           ),
