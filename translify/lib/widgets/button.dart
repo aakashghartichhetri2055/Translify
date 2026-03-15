@@ -10,20 +10,23 @@ import 'package:flutter/material.dart';
 class Button extends StatelessWidget {
   final String text;
   final VoidCallback action;
-  final Color color;
+  final Color backgroundColor;
+  final Color textColor;
+
   const Button({
     super.key,
     required this.text,
     required this.action,
-    this.color = const Color.fromRGBO(66, 217, 255, 1),
+    required this.backgroundColor,
+    required this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return FilledButton(
       onPressed: action,
-      style: ElevatedButton.styleFrom(backgroundColor: color),
-      child: Text(text),
+      style: ElevatedButton.styleFrom(backgroundColor: backgroundColor),
+      child: Text(text, style: TextStyle(color: textColor)),
     );
   }
 }

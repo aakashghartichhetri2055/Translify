@@ -1,6 +1,7 @@
 // Reusable Text Input widget
 
 import 'package:flutter/material.dart';
+import 'package:translify/colors/colors.dart';
 
 /// Text Input Widget
 /// Meant to be used within a Form Widget
@@ -34,35 +35,38 @@ class TextInput extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
-        cursorColor: Colors.white,
-        style: const TextStyle(color: Colors.white),
+        cursorColor: TranslifyColors.textInputAccentColor,
+        style: TextStyle(color: TranslifyColors.textInputAccentColor),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white),
+          hintStyle: TextStyle(color: TranslifyColors.textInputAccentColor),
 
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white),
+          labelStyle: TextStyle(color: TranslifyColors.textInputAccentColor),
 
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.white),
+            borderSide: BorderSide(color: TranslifyColors.textInputAccentColor),
           ),
 
           // When the text field is unfocused
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.white),
+            borderSide: BorderSide(color: TranslifyColors.textInputAccentColor),
           ),
 
           // When user is inputting text in the field
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.white, width: 2),
+            borderSide: BorderSide(
+              color: TranslifyColors.textInputAccentColor,
+              width: 2,
+            ),
           ),
 
           // Background color
           filled: true,
-          fillColor: Color.fromRGBO(96, 92, 92, 1),
+          fillColor: TranslifyColors.textInputBackgroundColor,
         ),
 
         // Validation, show error text below the input when the text is invalid

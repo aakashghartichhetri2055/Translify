@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/forms/login_form.dart';
+import 'package:translify/colors/colors.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -61,7 +62,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(15, 15, 15, 1),
+      backgroundColor: TranslifyColors.backgroundColor,
       body: Column(
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * .1),
@@ -69,7 +70,10 @@ class _LoginViewState extends State<LoginView> {
           // Text Logo
           Text(
             "Translify",
-            style: TextStyle(color: Colors.white, fontSize: 50),
+            style: TextStyle(
+              color: TranslifyColors.headerTextColor,
+              fontSize: 50,
+            ),
           ),
 
           SizedBox(height: MediaQuery.of(context).size.height * .1),
@@ -84,12 +88,22 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: MediaQuery.of(context).size.height * .05),
 
           // Button to confirm the signup
-          Button(text: "Log In!", action: loginButtonTapped),
+          Button(
+            text: "Log In!",
+            action: loginButtonTapped,
+            backgroundColor: TranslifyColors.adminButtonColor,
+            textColor: TranslifyColors.adminButtonTextColor,
+          ),
 
           SizedBox(height: MediaQuery.of(context).size.height * .05),
 
           // Button to Take You to Sign Up Page
-          Button(text: "Sign Up", action: signUpButtonTapped),
+          Button(
+            text: "Sign Up",
+            action: signUpButtonTapped,
+            backgroundColor: TranslifyColors.adminButtonColor,
+            textColor: TranslifyColors.adminButtonTextColor,
+          ),
         ],
       ),
     );

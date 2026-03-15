@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/forms/sign_up_form.dart';
+import 'package:translify/colors/colors.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({super.key});
@@ -55,7 +56,7 @@ class _SignUpViewState extends State<SignUpView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(15, 15, 15, 1),
+      backgroundColor: TranslifyColors.backgroundColor,
       body: Column(
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * .1),
@@ -79,7 +80,12 @@ class _SignUpViewState extends State<SignUpView> {
           SizedBox(height: MediaQuery.of(context).size.height * .05),
 
           // Button to confirm the signup
-          Button(text: "Sign Up!", action: signUpButtonTapped),
+          Button(
+            text: "Sign Up!",
+            action: signUpButtonTapped,
+            backgroundColor: TranslifyColors.adminButtonColor,
+            textColor: TranslifyColors.adminButtonTextColor,
+          ),
         ],
       ),
     );
