@@ -2,6 +2,8 @@
 // Asks the new user if they want to store their translations on our server so that they can look at them later
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:translify/router/routes.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/button.dart';
 
@@ -21,7 +23,16 @@ class _AfterNewUserViewState extends State<AfterNewUserView> {
     });
   }
 
-  void buttonPressed(BuildContext context) {}
+  void buttonPressed(BuildContext context) {
+    // Try to send response back to server
+
+    // Server response
+    final response = true;
+
+    if (response) {
+      context.go(AppRoutes.home);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
