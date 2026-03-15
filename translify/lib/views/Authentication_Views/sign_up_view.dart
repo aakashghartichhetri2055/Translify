@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:translify/router/routes.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/forms/sign_up_form.dart';
 import 'package:translify/colors/colors.dart';
@@ -29,12 +31,13 @@ class _SignUpViewState extends State<SignUpView> {
   }
 
   // For when the Sign Up Button is clicked
-  void signUpButtonTapped() {
+  void signUpButtonTapped(BuildContext context) {
     // Validate form content first
     if (!_signUpFormKey.currentState!.validate()) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Something went wrong')));
+      return;
     }
 
     // Send form content to backend
@@ -43,11 +46,8 @@ class _SignUpViewState extends State<SignUpView> {
     const response = true;
 
     // If response is good, save credentials and move user to next page (Homepage)
-    // TODO: Add navigation here
     if (response) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cool!')));
+      context.go(AppRoutes.afterNewUser);
     }
 
     // Else, inform user of bad response
@@ -82,7 +82,7 @@ class _SignUpViewState extends State<SignUpView> {
           // Button to confirm the signup
           Button(
             text: "Sign Up!",
-            action: signUpButtonTapped,
+            action: () => {signUpButtonTapped(context)},
             backgroundColor: TranslifyColors.adminButtonColor,
             textColor: TranslifyColors.adminButtonTextColor,
           ),
