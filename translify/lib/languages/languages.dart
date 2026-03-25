@@ -2,7 +2,8 @@
 
 enum Languages {
   en("English", "en"),
-  es("Spanish", "es");
+  es("Spanish", "es"),
+  fr("French", "fr");
 
   const Languages(this.name, this.code);
   final String name;
