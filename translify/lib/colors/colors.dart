@@ -56,4 +56,7 @@ class TranslifyColors {
   /// Color of the buttons that don't do administrative stuff
   ///   EX: The two buttons on the homepage for the two translation features
   static final nonAdminButtonColor = Color.fromRGBO(96, 92, 92, 1);
+
+  /// Color of when an option is disabled
+  static final disabledOptionColor = Color.fromRGBO(245, 245, 245, 0.338);
 }

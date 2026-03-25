@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:translify/router/routes.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/feature_button.dart';
@@ -16,6 +17,7 @@ class HomeView extends StatelessWidget {
 
   void conversationTranslationButtonTapped(BuildContext context) {
     // Nav to conversation translation page
+    context.push(AppRoutes.conversation);
   }
 
   @override
