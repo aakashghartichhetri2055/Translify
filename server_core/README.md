@@ -1,6 +1,5 @@
-# 🌍 Translify — Backend Core
-The **Translify Backend Core** is a high-performance FastAPI service that powers real-time multimodal translation.  
-It processes text from OCR (images), speech-to-text pipelines, or direct user input, translates it using a **self-hosted LibreTranslate engine**, and returns results instantly.
+# Server Core
+The ** Server Core ** is a high-performance FastAPI service that powers real-time multimodal translation. It processes text from OCR (images), speech-to-text pipelines, or direct user input, translates it using a **self-hosted LibreTranslate engine**, and returns results instantly.
 
 It also supports **JWT-based authentication** and optional **translation history storage in PostgreSQL**.
 
@@ -23,7 +22,7 @@ LibreTranslate (Self-hosted)
 ↓
 Translated Output
 ↓
-(Optional) PostgreSQL (Store History)
+PostgreSQL (Store History)
 ↓
 Response (JSON)
 
@@ -128,7 +127,7 @@ http://127.0.0.1:8000/docs
 * History is stored **only if `store_history = true`**
 * Backend uses **async processing for performance**
 
-# 🎯 Role in Translify System
+# Role in Translify System
 This backend acts as the **central orchestrator**, integrating:
 
 * OCR Module → text extraction
