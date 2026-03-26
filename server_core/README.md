@@ -1,5 +1,5 @@
 # Server Core
-The ** Server Core ** is a high-performance FastAPI service that powers real-time multimodal translation. It processes text from OCR (images), speech-to-text pipelines, or direct user input, translates it using a **self-hosted LibreTranslate engine**, and returns results instantly.
+The **Server Core** is a high-performance FastAPI service that powers real-time multimodal translation. It processes text from OCR (images), speech-to-text pipelines, or direct user input, translates it using a **self-hosted LibreTranslate engine**, and returns results instantly.
 
 It also supports **JWT-based authentication** and optional **translation history storage in PostgreSQL**.
 
@@ -10,35 +10,6 @@ It also supports **JWT-based authentication** and optional **translation history
 - FastAPI async backend
 - PostgreSQL integration
 - Self-hosted LibreTranslate (no external API)
-
-# System Architecture
-Input (OCR / Speech / Text)
-↓
-FastAPI Backend (Routing + Validation + Auth)
-↓
-Translation Service
-↓
-LibreTranslate (Self-hosted)
-↓
-Translated Output
-↓
-PostgreSQL (Store History)
-↓
-Response (JSON)
-
-# Project Structure
-backend_core/
-├── app/
-│   ├── main.py              # FastAPI entry point
-│   ├── routes.py            # API endpoints (auth + translate)
-│   ├── translate_service.py # Translation logic
-│   ├── auth_service.py      # Authentication logic (hash + JWT)
-│   ├── schemas.py           # Pydantic models
-│   ├── models.py            # SQLAlchemy models
-│   ├── database.py          # DB connection setup
-│   └── config.py            # Environment config
-├── requirements.txt
-└── .env
 
 # Environment Setup
 Create a `.env` file in the root:
