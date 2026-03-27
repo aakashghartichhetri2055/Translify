@@ -33,20 +33,26 @@ class LanguageSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return MenuAnchor(
       // The menu options
+      // Build them dynamically from the language list stored in translify/languages/languages.dart
       menuChildren: Languages.values.map((language) {
         {
           return Container(
             color: menuItemBackgroundColor,
 
             child: MenuItemButton(
+              // Disable the button if the current option is the same as the current selected language
+              onPressed: currentLanguage == language.code
+                  ? null
+                  : () => {updateLanguageChoice(language)},
+
               child: Text(
                 language.name,
+
+                // Change the style of the option is the current option is the same as the current selected language
                 style: currentLanguage == language.code
                     ? TextStyle(color: disabledColor)
                     : TextStyle(color: menuItemTextColor),
               ),
-              //   onPressed: null,
-              onPressed: () => {updateLanguageChoice(language)},
             ),
           );
         }

@@ -59,4 +59,7 @@ class TranslifyColors {
 
   /// Color of when an option is disabled
   static final disabledOptionColor = Color.fromRGBO(245, 245, 245, 0.338);
+
+  /// Standard dark color for use the text on buttons
+  static final darkButtonText = Colors.black;
 }
