@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:translify/widgets/conversation_speaker_bubble.dart';
 import 'package:translify/languages/languages.dart';
 import 'package:translify/colors/colors.dart';
+import 'package:translify/widgets/microphone_row.dart';
 
 class ConversationTranslationView extends StatefulWidget {
   const ConversationTranslationView({super.key});
@@ -120,6 +121,18 @@ class _ConversationTranslationViewState
                   TranslifyColors.conversationTranslationSecondSpeakerColor,
               currentLanguage: speakerTwoCurrentLanguage,
               disabledColor: TranslifyColors.disabledOptionColor,
+            ),
+
+            SizedBox(height: MediaQuery.of(context).size.height * .05),
+
+            MicrophoneRow(
+              primarySpeakerColor:
+                  TranslifyColors.convesationTranslationAccentColor,
+              primarySpeakerAction: () => {},
+              secondarySpeakerColor:
+                  TranslifyColors.conversationTranslationSecondSpeakerColor,
+              secondarySpeakerAction: () => {},
+              microphoneIconColor: TranslifyColors.darkButtonText,
             ),
           ],
         ),
