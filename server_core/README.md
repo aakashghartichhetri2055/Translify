@@ -15,10 +15,15 @@ It also supports **JWT-based authentication** and optional **translation history
 Create a `.env` file in the root:
 
 DATABASE_URL=postgresql://acexeon:StrongPass123@localhost:4321/translify
+
 LIBRETRANSLATE=http://127.0.0.1:5000
+
 SUPPORTED_LANGUAGES=en,es
+
 SECRET_KEY=your_super_secret_key_here
+
 ALGORITHM=HS256
+
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 # PostgreSQL Setup (Homebrew)
