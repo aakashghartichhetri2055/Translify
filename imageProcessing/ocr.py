@@ -92,14 +92,11 @@ class Camera:
         np_arr = np.frombuffer(jpeg_bytes, dtype=np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Save raw snapshot before OCR
-        cv2.imwrite(CAPTURE_PATH, frame)
-        print(f"[snapshot] raw frame saved → {os.path.abspath(CAPTURE_PATH)}")
-
-        # peform ocr
+        # perform ocr with bounding box data
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
         text = pytesseract.image_to_string(gray)
-        
+
         # Print to terminal
         print("\n" + "=" * 50)
         print("[OCR] Detected text:")
@@ -107,14 +104,43 @@ class Camera:
         print(text.strip() if text.strip() else "(no text detected)")
         print("=" * 50 + "\n")
 
-        # overlay text with cv2.putText()
-        y_offset = 30
-        for line in text.splitlines():
-            if line.strip():
-                cv2.putText(frame, line.strip(), (10, y_offset), 
-                        cv2.FONT_HERSHEY_PLAIN, 2.5,
-                        (0, 255, 0), 2, cv2.LINE_AA,)
-                y_offset += 35
+        # Draw bounding boxes around each detected word
+        n_boxes = len(data["text"])
+        for i in range(n_boxes):
+            word = data["text"][i].strip()
+            conf = int(data["conf"][i])
+
+            # Skip empty words and low-confidence detections (conf == -1 means block/line level)
+            if not word or conf < 40:
+                continue
+
+            x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+
+            # Draw green bounding box
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # Draw label background for readability
+            label = f"{word} ({conf}%)"
+            (label_w, label_h), baseline = cv2.getTextSize(
+                label, cv2.FONT_HERSHEY_PLAIN, 1.2, 1
+            )
+            label_y = y - 4 if y - label_h - 4 >= 0 else y + h + label_h + 4
+            cv2.rectangle(
+                frame,
+                (x, label_y - label_h - baseline),
+                (x + label_w, label_y + baseline),
+                (0, 255, 0),
+                cv2.FILLED,
+            )
+            cv2.putText(
+                frame, label, (x, label_y),
+                cv2.FONT_HERSHEY_PLAIN, 1.2,
+                (0, 0, 0), 1, cv2.LINE_AA,
+            )
+        
+        # Save raw snapshot after OCR
+        cv2.imwrite(CAPTURE_PATH, frame)
+        print(f"[snapshot] raw frame saved → {os.path.abspath(CAPTURE_PATH)}")
 
         # re-encode to jpeg, store in self._captured_jpeg
         ret, captured_jpeg = cv2.imencode(".jpg", frame)
