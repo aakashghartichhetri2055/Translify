@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:translify/widgets/alert.dart';
 import 'package:translify/widgets/conversation_speaker_bubble.dart';
 import 'package:translify/languages/languages.dart';
 import 'package:translify/colors/colors.dart';
@@ -30,53 +31,106 @@ class _ConversationTranslationViewState
   // Function for when primary speaker wants to speak
   void primarySpeaking() async {
     // Get the status of the audio recording
+    bool? status = await permissionCheck();
+
+    /**
+        * PLAN:
+        *  Create a widget that shows an indication of audio being recorded, and a button to stop the recording
+        *  Set up the recorder object so that it is created when this view is created
+        *  Figure out how to do file paths
+        *  Make sure to dispose of the recorder object when the view is changed
+   */
+  }
+
+  @override
+  void initState() {
+    // Setup recorder object here
+
+    super.initState();
+  }
+
+  Future<bool?> permissionCheck() async {
     PermissionStatus status = await Permission.microphone.status;
 
-    print(status);
+    // If user has provided permission already
+    if (status.isGranted) {
+      return true;
+    }
+    // Else ask user to grant permission
+    else if (status.isDenied) {
+      // Async call here, if try to use context directly, will throw error
+      // Have to store the context in a separate variable, and then check if the widget is mounted
+      BuildContext contextCheck = context;
+      if (!contextCheck.mounted) return null;
 
-    // Either the first time the user has used this feature, or they have denied the permission once before
-    if (status.isDenied) {
-      print("getting permission");
-      // Request the permission from the user
-      PermissionStatus request = await Permission.microphone.request();
+      // Show a dialogue to the user asking for permission here
+      final request = await showDialog<bool>(
+        context: contextCheck,
+        barrierDismissible: false,
+        builder: (BuildContext context) => Alert(
+          title: "Permission to Use Microphone",
+          content:
+              "We need access to your microphone in order to enable conversation translation.",
+          backgroundColor: TranslifyColors.backgroundColor,
+          accentColor: TranslifyColors.convesationTranslationAccentColor,
+          contentTextColor: TranslifyColors.headerTextColor,
+          buttonTextColor: TranslifyColors.darkButtonText,
+          yesButtonText: "Ok",
+          noButtonText: "No",
+        ),
+      );
 
-      // If the user denied the request once
-      if (request.isDenied) {
-        PermissionStatus secondRequest = await Permission.microphone.request();
-        // If they deny at this point, permission is permanently denied
-        print(secondRequest);
+      // If the user does not grant permission, return false
+      // I don't think request can be null here, but check here anyways
+      if (request == null || request == false) {
+        return false;
+      }
+      // If user wants to grant permission, give them the OS prompt to grant permission
+      else {
+        PermissionStatus microphonePermissionAsk = await Permission.microphone
+            .request();
 
-        if (secondRequest.isPermanentlyDenied) {
-          print("HERE!");
-          openAppSettings();
+        if (microphonePermissionAsk.isGranted) {
+          return true;
+        } else {
+          return false;
         }
       }
-      // If the user has denied once before, and now they denied a second time, permission is permanently denied now
-      else if (status.isPermanentlyDenied) {
-        print("HERE!");
+    } else if (status.isPermanentlyDenied) {
+      BuildContext contextCheck = context;
+      if (!contextCheck.mounted) return null;
+
+      // Show a dialogue directing the user to enable the permission in system settings
+      final request = await showDialog<bool>(
+        context: contextCheck,
+        barrierDismissible: false,
+        builder: (BuildContext context) => Alert(
+          title: "Permission to Use Microphone",
+          content:
+              "Please grant permission to use the microphone in the system settings. We need access to your microphone in order to enable conversation translation.",
+          backgroundColor: TranslifyColors.backgroundColor,
+          accentColor: TranslifyColors.convesationTranslationAccentColor,
+          contentTextColor: TranslifyColors.headerTextColor,
+          buttonTextColor: TranslifyColors.darkButtonText,
+          yesButtonText: "Go to system settings",
+          noButtonText: "No",
+        ),
+      );
+
+      // If the user does not press the button to go to system settings, return
+      // I don't think request can be null here, but check here anyways
+      if (request == null || request == false) {
+        return false;
+      } else {
         openAppSettings();
+
+        // We do not know the outcome of the user going to system settings, so return false
+        // This means the user will have to press the microphone button again, but if they enabled the permission in the settings, then it should be fine
+        return false;
       }
     }
-    // User has permanently denied the permission
-    else if (status.isPermanentlyDenied) {
-      print("HERE!");
-      openAppSettings();
-    }
 
-    // Do a sanity check here
-    PermissionStatus secondStatusCheck = await Permission.microphone.status;
-
-    if (secondStatusCheck.isGranted) {
-      // Proceed to the rest of the code here
-
-      /**
-       * PLAN:
-       *  Create a widget that shows an indication of audio being recorded, and a button to stop the recording
-       *  Set up the recorder object so that it is created when this view is created
-       *  Figure out how to do file paths
-       *  Make sure to dispose of the recorder object when the view is changed
-       */
-    } else {}
+    return null;
   }
 
   void updateSpeakerOneLanguageChoice(Languages language) {
