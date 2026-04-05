@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:translify/router/router.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  // Ensure that camera plugin is loaded
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {

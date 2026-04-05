@@ -13,6 +13,7 @@ class HomeView extends StatelessWidget {
 
   void cameraTranslationButtonTapped(BuildContext context) {
     // Nav to camera translation page
+    context.push(AppRoutes.initialCamera);
   }
 
   void conversationTranslationButtonTapped(BuildContext context) {

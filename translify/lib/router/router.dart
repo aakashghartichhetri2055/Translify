@@ -9,6 +9,7 @@ import 'package:translify/views/Authentication_Views/sign_up_view.dart';
 import 'package:translify/views/Authentication_Views/after_new_user_view.dart';
 import 'package:translify/views/Home_View/home_view.dart';
 import 'package:translify/views/Conversation_Translation_Views/conversation_translation_view.dart';
+import 'package:translify/views/Camera_Translation_Views/initial_camera_translation_view.dart';
 
 final GoRouter router = GoRouter(
   routes: [
@@ -32,6 +33,13 @@ final GoRouter router = GoRouter(
       path: AppRoutes.conversation,
       builder: (context, state) => const ConversationTranslationView(),
     ),
+    GoRoute(
+      path: AppRoutes.initialCamera,
+      builder: (context, state) => const InitialCameraTranslationView(),
+      routes: [
+
+      ]
+    ),
   ],
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.home,
 );

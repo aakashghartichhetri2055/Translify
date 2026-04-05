@@ -5,4 +5,5 @@ class AppRoutes {
   static const afterNewUser = "/newUserPrivacyChoice";
   static const home = "/home";
   static const conversation = "/conversation";
+  static const initialCamera = "/camera";
 }
