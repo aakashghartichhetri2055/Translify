@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:translify/widgets/alert.dart';
 import 'package:translify/widgets/conversation_speaker_bubble.dart';
@@ -6,6 +8,8 @@ import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/microphone_row.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:translify/widgets/recording_controls.dart';
 
 class ConversationTranslationView extends StatefulWidget {
   const ConversationTranslationView({super.key});
@@ -28,25 +32,84 @@ class _ConversationTranslationViewState
   String speakerTwoCurrentLanguage = "es";
   String speakerTwoCurrentLanguageButtonMessage = "Current Language: Spanish";
 
-  // Function for when primary speaker wants to speak
-  void primarySpeaking() async {
-    // Get the status of the audio recording
-    bool? status = await permissionCheck();
+  // Recorder object
+  late final AudioRecorder recorder;
 
-    /**
-        * PLAN:
-        *  Create a widget that shows an indication of audio being recorded, and a button to stop the recording
-        *  Set up the recorder object so that it is created when this view is created
-        *  Figure out how to do file paths
-        *  Make sure to dispose of the recorder object when the view is changed
-   */
-  }
+  // Variable to see if recording
+  bool recording = false;
+  String? currentSpeaker;
 
   @override
   void initState() {
     // Setup recorder object here
-
+    recorder = AudioRecorder();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // Dispose the recorder object here
+    recorder.dispose();
+    super.dispose();
+  }
+
+  // Function for when someone is starting to record
+  void startRecording(String speaker) async {
+    // Get the status of the audio recording
+    bool? status = await permissionCheck();
+
+    if (status == null || status == false) {
+      return;
+    }
+
+    // Proceed with the recording
+
+    // Get the path to store the output in
+    String currentTimestamp = (DateTime.now().millisecondsSinceEpoch)
+        .toString();
+
+    Directory fileDirctory = await getApplicationDocumentsDirectory();
+
+    String filePath = '${fileDirctory.path}/${currentTimestamp}aaa.wav';
+
+    setState(() {
+      recording = true;
+      currentSpeaker = speaker;
+    });
+
+    // Start recording
+    await recorder.start(
+      const RecordConfig(encoder: AudioEncoder.wav),
+      path: filePath,
+    );
+  }
+
+  // Function for when the recording is cancelled
+  void cancelRecording() async {
+    await recorder.cancel();
+    setState(() {
+      recording = false;
+      currentSpeaker = null;
+    });
+  }
+
+  // Function for when the recording is finished
+  void endRecording() async {
+    // Stop the recording
+    final String? filePath = await recorder.stop();
+
+    // Debug: See that the file actually exists:
+    //  File recordedFile = File(filePath!);
+    //  bool exists = await recordedFile.exists();
+    //  print(exists);
+    // But how to access the actual file?
+
+    // Begin the process of sending the recording to the backend here
+    print(filePath);
+    setState(() {
+      recording = false;
+      currentSpeaker = null;
+    });
   }
 
   Future<bool?> permissionCheck() async {
@@ -233,15 +296,24 @@ class _ConversationTranslationViewState
 
             SizedBox(height: MediaQuery.of(context).size.height * .05),
 
-            MicrophoneRow(
-              primarySpeakerColor:
-                  TranslifyColors.convesationTranslationAccentColor,
-              primarySpeakerAction: primarySpeaking,
-              secondarySpeakerColor:
-                  TranslifyColors.conversationTranslationSecondSpeakerColor,
-              secondarySpeakerAction: () => {},
-              microphoneIconColor: TranslifyColors.darkButtonText,
-            ),
+            recording
+                ? RecordingControls(
+                    cancelButtonMessage: "Cancel Recording",
+                    cancelButtonFunction: cancelRecording,
+                    endButtonMessage: "Finish Recording",
+                    endButtonFunction: endRecording,
+                    buttonTextColor: TranslifyColors.headerTextColor,
+                    buttonBackgroundColor: TranslifyColors.nonAdminButtonColor,
+                  )
+                : MicrophoneRow(
+                    primarySpeakerColor:
+                        TranslifyColors.convesationTranslationAccentColor,
+                    primarySpeakerAction: () => {startRecording("primary")},
+                    secondarySpeakerColor: TranslifyColors
+                        .conversationTranslationSecondSpeakerColor,
+                    secondarySpeakerAction: () => {startRecording("secondary")},
+                    microphoneIconColor: TranslifyColors.darkButtonText,
+                  ),
           ],
         ),
       ),

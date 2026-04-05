@@ -15,8 +15,8 @@ Currently targeting Android only. IOS planned if time permits.
    - ~~Conversation translation page~~
    - Settings Page
    - ~~Add go_router package to facilitate pages~~
-2. Add cameara input functionality to Camera translation page
-3. Add microphone input functionality to Conversation translation page
+2. Add camera input functionality to Camera translation page
+3. ~~Add microphone input functionality to Conversation translation page~~
 4. ~~Add functionality to other pages~~
 5. Connect mobile app to backend server (future)
 6. Port app to IOS by adding necessary IOS specific code (planned)
