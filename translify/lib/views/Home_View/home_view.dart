@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:translify/router/routes.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/feature_button.dart';
@@ -11,9 +12,21 @@ class HomeView extends StatelessWidget {
     // Nav to settings page
   }
 
-  void cameraTranslationButtonTapped(BuildContext context) {
-    // Nav to camera translation page
-    context.push(AppRoutes.initialCamera);
+  void cameraTranslationButtonTapped(BuildContext context) async {
+    // Check the permission status of the camera
+    PermissionStatus status = await Permission.camera.status;
+
+    BuildContext contextCheck = context;
+    if (!contextCheck.mounted) {
+      return;
+    }
+
+    if (status.isGranted) {
+      // Nav to camera translation page
+      context.push(AppRoutes.initialCamera);
+    } else {
+      context.push(AppRoutes.cameraPermission);
+    }
   }
 
   void conversationTranslationButtonTapped(BuildContext context) {

@@ -41,7 +41,11 @@ class _InitialCameraTranslationViewState
     );
 
     // Create the controller for the camera
-    currentCamera = CameraController(backCamera, ResolutionPreset.medium);
+    currentCamera = CameraController(
+      backCamera,
+      ResolutionPreset.medium,
+      enableAudio: false,
+    );
 
     // Save the future
     initializeControllerFuture = currentCamera.initialize();
