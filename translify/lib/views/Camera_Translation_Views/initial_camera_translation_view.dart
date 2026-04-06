@@ -23,7 +23,7 @@ class _InitialCameraTranslationViewState
   late CameraController currentCamera;
 
   // The future to control the widget building based on status of controller
-  late Future<void> initializeControllerFuture;
+  Future<void>? initializeControllerFuture;
 
   @override
   void initState() {
@@ -65,18 +65,26 @@ class _InitialCameraTranslationViewState
     return Scaffold(
       backgroundColor: TranslifyColors.backgroundColor,
 
-      body: FutureBuilder<void>(
-        future: initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            // If the Future is complete, display the preview.
-            return CameraPreview(currentCamera);
-          } else {
-            // Otherwise, display a loading indicator.
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
-      ),
+      body: initializeControllerFuture == null
+          ? Center(
+              child: CircularProgressIndicator(
+                color: TranslifyColors.cameraTranslationAccentColor,
+              ),
+            )
+          : FutureBuilder<void>(
+              future: initializeControllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return CameraPreview(currentCamera);
+                } else {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: TranslifyColors.cameraTranslationAccentColor,
+                    ),
+                  );
+                }
+              },
+            ),
     );
   }
 }
