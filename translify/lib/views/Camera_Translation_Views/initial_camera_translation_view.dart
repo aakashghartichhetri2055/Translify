@@ -45,14 +45,39 @@ class _InitialCameraTranslationViewState
     // Save the future
     initializeControllerFuture = currentCamera.initialize();
 
+    // Wait until camera is initialized
+    await initializeControllerFuture;
+
     // Check to see if the view is still available (ie user has not gone back)
     if (!mounted) return;
+
+    // Get the zoom variables
+    double min = await currentCamera.getMinZoomLevel();
+    double max = await currentCamera.getMaxZoomLevel();
 
     // Save the other variables (also triggers rebuild)
     setState(() {
       cameras = cameraList;
       currentCameraDescription = backCamera;
+      minZoom = min;
+      maxZoom = max;
     });
+  }
+
+  // Variables to control the zoom
+  late final double minZoom;
+  late final double maxZoom;
+  double currentZoom = 1;
+  double baseZoom = 1;
+
+  void captureButtonPressed() async {
+    // Ensure camera is available
+    await initializeControllerFuture;
+
+    // Take the picture
+    final XFile picture = await currentCamera.takePicture();
+
+    print(picture.path);
   }
 
   // Target Language Variables
@@ -110,6 +135,12 @@ class _InitialCameraTranslationViewState
   }
 
   @override
+  void dispose() {
+    currentCamera.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TranslifyColors.backgroundColor,
@@ -117,7 +148,8 @@ class _InitialCameraTranslationViewState
       body: initializeControllerFuture == null
           ? Center(
               child: CircularProgressIndicator(
-                color: TranslifyColors.cameraTranslationAccentColor,
+                color:
+                    TranslifyColors.conversationTranslationSecondSpeakerColor,
               ),
             )
           : FutureBuilder<void>(
@@ -126,8 +158,33 @@ class _InitialCameraTranslationViewState
                 if (snapshot.connectionState == ConnectionState.done) {
                   return Column(
                     children: [
-                      // The camera view
-                      CameraPreview(currentCamera),
+                      // The camera view wrapped in gesture dectector for zoom
+                      GestureDetector(
+                        onScaleStart: (details) {
+                          // Save the old zoom value
+                          baseZoom = currentZoom;
+                        },
+                        onScaleUpdate: (details) async {
+                          // Figure out the new zoom value for the camera
+                          double zoom = (baseZoom * details.scale).clamp(
+                            minZoom,
+                            maxZoom,
+                          );
+
+                          // Set the zoom on the camera
+                          await currentCamera.setZoomLevel(zoom);
+
+                          // Save the new zoom value
+                          setState(() {
+                            currentZoom = zoom;
+                          });
+                        },
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * .6,
+                          width: MediaQuery.of(context).size.width,
+                          child: CameraPreview(currentCamera),
+                        ),
+                      ),
 
                       SizedBox(
                         height: MediaQuery.of(context).size.height * .05,
@@ -186,7 +243,7 @@ class _InitialCameraTranslationViewState
                         ),
 
                         child: IconButton(
-                          onPressed: () => {},
+                          onPressed: captureButtonPressed,
                           icon: Icon(Icons.radio_button_checked, size: 50),
                           style: IconButton.styleFrom(
                             backgroundColor: TranslifyColors.backgroundColor,
