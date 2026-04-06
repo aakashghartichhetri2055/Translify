@@ -75,6 +75,42 @@ class Camera:
             if ret:
                 with self._lock:
                     self._lastest_jepg = jpeg.tobytes()
+
+    def preprocess_for_ocr(self, gray):
+        """
+        Normalizes brightness with gamma correction — adjusts exposure without
+        amplifying noise like CLAHE + sharpening does.
+        """
+        # Gamma < 1 brightens a dark image, gamma > 1 darkens a bright image
+        avg_brightness = np.mean(gray)
+        print(f"[preprocess] avg brightness: {avg_brightness:.1f}")
+
+        # Automatically pick gamma based on how dark or bright the frame is
+        if avg_brightness < 85:
+            gamma = 0.5   # very dark — brighten aggressively
+        elif avg_brightness < 127:
+            gamma = 0.75  # moderately dark — brighten gently
+        elif avg_brightness > 180:
+            gamma = 1.5   # too bright/washed out — darken slightly
+        else:
+            gamma = 1.0   # already well-lit — no adjustment needed
+
+        if gamma != 1.0:
+            print(f"[preprocess] applying gamma: {gamma}")
+            table = np.array([
+                ((i / 255.0) ** gamma) * 255 for i in range(256)
+            ], dtype=np.uint8)
+            gray = cv2.LUT(gray, table)
+
+        # Invert only if still dark after gamma correction
+        if np.mean(gray) < 100:
+            print("[preprocess] inverting for light text on dark background")
+            gray = cv2.bitwise_not(gray)
+
+        # Gentle denoise — keep this, it doesn't amplify noise
+        gray = cv2.fastNlMeansDenoising(gray, h=10)
+
+        return gray
     
     def capture(self):
         # grab latest jpeg from self._lastest_jepg
@@ -104,7 +140,10 @@ class Camera:
         else:
             scale = 1.0
             gray_upscaled = gray
-        
+
+        # preprocess to handle light-colored text
+        gray_upscaled = self.preprocess_for_ocr(gray_upscaled)
+
         # run OCR on the upscaled grayscale image, get both text and detailed data for bounding boxes
         data = pytesseract.image_to_data(gray_upscaled, output_type=pytesseract.Output.DICT, config=config)
         text = pytesseract.image_to_string(gray_upscaled, config=config)
