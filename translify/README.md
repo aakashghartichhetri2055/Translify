@@ -11,15 +11,15 @@ Currently targeting Android only. IOS planned if time permits.
 1. Add basic screens for everything
    - ~~User authentication: login, signup~~, new user page
    - ~~Main landing page~~
-   - Camera translation page
+   - ~~Camera translation page~~
    - ~~Conversation translation page~~
    - Settings Page
    - ~~Add go_router package to facilitate pages~~
-2. Add camera input functionality to Camera translation page
-3. ~~Add microphone input functionality to Conversation translation page~~
-4. ~~Add functionality to other pages~~
-5. Connect mobile app to backend server (future)
-6. Port app to IOS by adding necessary IOS specific code (planned)
+     2.~~ Add camera input functionality to Camera translation page~~
+2. ~~Add microphone input functionality to Conversation translation page~~
+3. ~~Add functionality to other pages~~
+4. Connect mobile app to backend server (future)
+5. Port app to IOS by adding necessary IOS specific code (planned)
 
 ## How to Run
 
