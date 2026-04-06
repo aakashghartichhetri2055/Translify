@@ -92,10 +92,22 @@ class Camera:
         np_arr = np.frombuffer(jpeg_bytes, dtype=np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # perform ocr with bounding box data
+        # OCR configuration
+        config = "--oem 3 --psm 11"  # OEM 3 = default, PSM 11 = sparse text with OSD (good for natural scenes)
+
+        # convert to grayscale for better OCR performance, and upscale if too small
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
-        text = pytesseract.image_to_string(gray)
+        orig_h, orig_w = gray.shape
+        if orig_w < 1200:
+            scale = 1200 / orig_w
+            gray_upscaled = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+        else:
+            scale = 1.0
+            gray_upscaled = gray
+        
+        # run OCR on the upscaled grayscale image, get both text and detailed data for bounding boxes
+        data = pytesseract.image_to_data(gray_upscaled, output_type=pytesseract.Output.DICT, config=config)
+        text = pytesseract.image_to_string(gray_upscaled, config=config)
 
         # Print to terminal
         print("\n" + "=" * 50)
@@ -114,7 +126,11 @@ class Camera:
             if not word or conf < 40:
                 continue
 
-            x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+            # Scale bounding box coordinates back down to match the original frame
+            x = int(data["left"][i]  / scale)
+            y = int(data["top"][i]   / scale)
+            w = int(data["width"][i] / scale)
+            h = int(data["height"][i]/ scale)
 
             # Draw green bounding box
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -153,14 +169,13 @@ class Camera:
             # set self._mode = "captured"
             self._mode = "captured"
 
-       
-
-
+    # reset captured state and return to live mode
     def reset(self):
         self._mode = "live"
         self._captured_jpeg = None
         self._captured_text = ""
 
+    # generator for streaming video frames as multipart HTTP response
     def generate_frame(self):
         """
         Yields encoded JPEG frames formatted for a multipart HTTP stream.
@@ -222,6 +237,7 @@ async def lifespan(app : FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Simple Html testing for frontend
 @app.get("/", response_class=HTMLResponse)
 
 def index():
