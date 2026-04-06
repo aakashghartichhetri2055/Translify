@@ -10,7 +10,8 @@ import 'package:translify/views/Authentication_Views/after_new_user_view.dart';
 import 'package:translify/views/Home_View/home_view.dart';
 import 'package:translify/views/Conversation_Translation_Views/conversation_translation_view.dart';
 import 'package:translify/views/Camera_Translation_Views/camera_permissions_view.dart';
-import 'package:translify/views/Camera_Translation_Views/initial_camera_translation_view.dart';
+import 'package:translify/views/Camera_Translation_Views/initial_camera_view.dart';
+import 'package:translify/views/Camera_Translation_Views/after_picture_taken_view.dart';
 
 final GoRouter router = GoRouter(
   routes: [
@@ -41,9 +42,20 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: AppRoutes.initialCamera,
       builder: (context, state) => const InitialCameraTranslationView(),
-      routes: [
+    ),
+    GoRoute(
+      path: AppRoutes.afterCamera,
+      builder: (context, state) {
+        final source = state.pathParameters["sourceLang"]!;
+        final target = state.pathParameters["targetLang"]!;
+        final String path = state.extra as String;
 
-      ]
+        return AfterPictureTakenView(
+          imagePath: path,
+          initialSourceLanguage: source,
+          initialTargetLanguage: target,
+        );
+      },
     ),
   ],
   initialLocation: AppRoutes.home,

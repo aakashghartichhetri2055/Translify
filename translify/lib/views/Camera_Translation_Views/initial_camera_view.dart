@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:translify/languages/languages.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/language_selector.dart';
@@ -26,6 +27,12 @@ class _InitialCameraTranslationViewState
   // The future to control the widget building based on status of controller
   Future<void>? initializeControllerFuture;
 
+  // Variables to control the zoom
+  late final double minZoom;
+  late final double maxZoom;
+  double currentZoom = 1;
+  double baseZoom = 1;
+
   void initializeCameras() async {
     // Get cameras
     final List<CameraDescription> cameraList = await availableCameras();
@@ -38,7 +45,7 @@ class _InitialCameraTranslationViewState
     // Create the controller for the camera
     currentCamera = CameraController(
       backCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.veryHigh,
       enableAudio: false,
     );
 
@@ -64,66 +71,79 @@ class _InitialCameraTranslationViewState
     });
   }
 
-  // Variables to control the zoom
-  late final double minZoom;
-  late final double maxZoom;
-  double currentZoom = 1;
-  double baseZoom = 1;
-
-  void captureButtonPressed() async {
+  void captureButtonPressed(BuildContext context) async {
     // Ensure camera is available
     await initializeControllerFuture;
 
     // Take the picture
     final XFile picture = await currentCamera.takePicture();
 
-    print(picture.path);
+    // Go to the next page
+    BuildContext contextCheck = context;
+
+    if (!contextCheck.mounted) {
+      return;
+    } else {
+      context.push(
+        "/picture/$sourceLanguage/$targetLanguage",
+        extra: picture.path,
+      );
+    }
   }
 
   // Target Language Variables
   String targetLanguage = "en";
-  String targetLanguageButtonMessage = "Current Language: English";
+  String targetLanguageButtonMessage = "Target Language: English";
   void updateTargetLanguage(Languages language) {
     // If the languages for the first and second speaker match, swap them around
     // Ex: First person has English, and Second person has Spanish. If the First person picks Spanish in their menu, First person will have Spanish and Second person will have English
     if (sourceLanguage == language.code) {
+      // Get the language value from the enum
+      Languages targetName = Languages.values.firstWhere(
+        (language) => language.code == targetLanguage,
+      );
+
       setState(() {
         sourceLanguage = targetLanguage;
-        sourceLanguageButtonMessage = targetLanguageButtonMessage;
+        sourceLanguageButtonMessage = "Source Language: ${targetName.name}";
 
         targetLanguage = language.code;
-        targetLanguageButtonMessage = "Current Language: ${language.name}";
+        targetLanguageButtonMessage = "Target Language: ${language.name}";
       });
     }
     // Else only update the first person
     else {
       setState(() {
         targetLanguage = language.code;
-        targetLanguageButtonMessage = "Current Language: ${language.name}";
+        targetLanguageButtonMessage = "Target Language: ${language.name}";
       });
     }
   }
 
   // Source Language Variables
   String sourceLanguage = "es";
-  String sourceLanguageButtonMessage = "Current Language: Spanish";
+  String sourceLanguageButtonMessage = "Source Language: Spanish";
   void updateSourceLanguage(Languages language) {
     // If the languages for the first and second speaker match, swap them around
     // Ex: First person has English, and Second person has Spanish. If the First person picks Spanish in their menu, First person will have Spanish and Second person will have English
     if (targetLanguage == language.code) {
+      Languages sourceName = Languages.values.firstWhere(
+        (language) => language.code == sourceLanguage,
+      );
+
       setState(() {
         targetLanguage = sourceLanguage;
-        targetLanguageButtonMessage = sourceLanguageButtonMessage;
+        targetLanguageButtonMessage = "Target Language: ${sourceName.name}";
 
         sourceLanguage = language.code;
-        sourceLanguageButtonMessage = "Current Language: ${language.name}";
+        sourceLanguageButtonMessage = "Source Language: ${language.name}";
       });
     }
     // Else only update the first person
     else {
       setState(() {
         sourceLanguage = language.code;
-        sourceLanguageButtonMessage = "Current Language: ${language.name}";
+        sourceLanguageButtonMessage = "Source Language: ${language.name}";
       });
     }
   }
@@ -148,8 +168,7 @@ class _InitialCameraTranslationViewState
       body: initializeControllerFuture == null
           ? Center(
               child: CircularProgressIndicator(
-                color:
-                    TranslifyColors.conversationTranslationSecondSpeakerColor,
+                color: TranslifyColors.cameraTranslationAccentColor,
               ),
             )
           : FutureBuilder<void>(
@@ -243,7 +262,7 @@ class _InitialCameraTranslationViewState
                         ),
 
                         child: IconButton(
-                          onPressed: captureButtonPressed,
+                          onPressed: () => {captureButtonPressed(context)},
                           icon: Icon(Icons.radio_button_checked, size: 50),
                           style: IconButton.styleFrom(
                             backgroundColor: TranslifyColors.backgroundColor,
