@@ -8,6 +8,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     tesseract-ocr \
     libgl1 \
     libglib2.0-0 \
+    tesseract-ocr-spa \
     # ADD YOUR PACKAGE HERE
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

@@ -129,7 +129,7 @@ class Camera:
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         # OCR configuration
-        config = "--oem 3 --psm 11"  # OEM 3 = default, PSM 11 = sparse text with OSD (good for natural scenes)
+        config = "--oem 3 --psm 11 -l eng+spa"  # OEM 3 = default, PSM 11 = sparse text with OSD, lang = english + spanish
 
         # convert to grayscale for better OCR performance, and upscale if too small
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
