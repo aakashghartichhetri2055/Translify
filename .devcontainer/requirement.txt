@@ -1,0 +1,15 @@
+# Core dependencies (everyone needs these)
+python==3.12.3
+
+# Image Processing (OCR team)
+opencv-python==4.6.0
+pytesseract==5.3.4
+
+# Speech Processing team
+
+
+# Backend team
+
+
+# Translation team
+

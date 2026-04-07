@@ -1,3 +1,7 @@
+/.vscode
+# Image files from Image Processing Component
+/.jpg
+
 # Python cache
 __pycache__/
 *.py[cod]
