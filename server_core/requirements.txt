@@ -1,0 +1,11 @@
+fastapi
+uvicorn 
+httpx
+sqlalchemy
+psycopg2-binary
+python-dotenv
+pwdlib
+pyjwt
+python-multipart
+email-validator 
+
