@@ -113,8 +113,39 @@ Translify is designed with user privacy and data security as core principles.
 - Users can control whether their translations are saved.
 
 ## Performance Considerations
+To keep Translify fast and responsive, both the frontend and backend follow simple performance practices.
+- Process small text segments instead of large blocks to translate faster.
+- Cache previous translations so the system can reuse results instead of translating the same text again.
+- Limit input size to prevent very large requests from slowing down the application.
+- Use efficient communication between the mobile app and backend to reduce unnecessary network requests.
+- Run translation locally on the backend to avoid delays from external services.
+- These practices help ensure the app provides quick and smooth translations for camera text and speech conversations.
 
 ## Roadmap
+### Phase 1 - Core Translation Engine
+**Goal:** Implement text translation pipeline
+
+### Phase 2 - OCR Pipeline (Camera Translation)
+**Goal:** Enable image-based text translation
+
+### Phase 3 - Speech Translation Pipeline
+**Goal:** Enable real-time speech translation
+
+### Phase 4 - System Integration
+**Goal:** Combine all modules into a unified system
+
+### Phase 5 - User Features & Storage
+**Goal:** Add user-level functionality
+
+### Phase 6 - Performance Optimization
+**Goal:** Improve speed and efficiency
+
+### Phase 7 - Testing & Debugging
+**Goal:** Ensure reliability and correctness
+
+### Phase 8 - Deployment & Presentation
+**Goal:** Final delivery and demonstration
+
 
 ## Team Members
 - Kelvin Capriel Reyes
