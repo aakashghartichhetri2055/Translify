@@ -4,5 +4,5 @@ class Endpoints {
 
   static Uri signUp = Uri.parse("$base/signup");
 
-  static Uri loginIn = Uri.parse("$base/login");
+  static Uri login = Uri.parse("$base/login");
 }

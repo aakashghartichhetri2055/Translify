@@ -52,8 +52,8 @@ class _SignUpViewState extends State<SignUpView> {
         BuildContext contextCheck = context;
         if (!contextCheck.mounted) return;
 
-        // If response is good, save credentials and move user to next page (Homepage)
-        context.go(AppRoutes.afterNewUser);
+        // Send the user back to the login page
+        context.pop();
       }
     } catch (error) {
       print(error);
