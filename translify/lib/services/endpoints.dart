@@ -1,0 +1,8 @@
+class Endpoints {
+  static const String base = "http://10.0.2.2:8000";
+  // 10.0.2.2 is the address used to reach the machine's local host address from the emulated device in android studio
+
+  static Uri signUp = Uri.parse("$base/signup");
+
+  static Uri loginIn = Uri.parse("$base/login");
+}

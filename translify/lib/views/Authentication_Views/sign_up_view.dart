@@ -4,6 +4,7 @@ import 'package:translify/router/routes.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/forms/sign_up_form.dart';
 import 'package:translify/colors/colors.dart';
+import 'package:translify/services/sign_up_service.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({super.key});
@@ -31,7 +32,7 @@ class _SignUpViewState extends State<SignUpView> {
   }
 
   // For when the Sign Up Button is clicked
-  void signUpButtonTapped(BuildContext context) {
+  void signUpButtonTapped(BuildContext context) async {
     // Validate form content first
     if (!_signUpFormKey.currentState!.validate()) {
       ScaffoldMessenger.of(
@@ -41,16 +42,22 @@ class _SignUpViewState extends State<SignUpView> {
     }
 
     // Send form content to backend
+    try {
+      String? response = await signUpService(
+        _emailController.text,
+        _passwordController.text,
+      );
 
-    // Receive response from server
-    const response = true;
+      if (response == "Good") {
+        BuildContext contextCheck = context;
+        if (!contextCheck.mounted) return;
 
-    // If response is good, save credentials and move user to next page (Homepage)
-    if (response) {
-      context.go(AppRoutes.afterNewUser);
+        // If response is good, save credentials and move user to next page (Homepage)
+        context.go(AppRoutes.afterNewUser);
+      }
+    } catch (error) {
+      print(error);
     }
-
-    // Else, inform user of bad response
   }
 
   @override
