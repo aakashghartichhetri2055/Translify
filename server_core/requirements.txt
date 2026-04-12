@@ -9,3 +9,6 @@ pyjwt
 python-multipart
 email-validator 
 
+# Speech Processing Requirements
+faster-whisper 
+sounddevice

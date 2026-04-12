@@ -4,6 +4,16 @@ import numpy as np
 import wave
 import os
 
+def speechProcessing(filepath):
+   model = WhisperModel("base", device="cpu", compute_type="int8")
+
+   segments, _ = model.transcribe(filepath)
+
+   text = ""
+   for segment in segments:
+      text += segment.text + " "
+
+   return text.strip()
 
 class SpeechProcessor:
     def __init__(self):
@@ -47,6 +57,8 @@ class SpeechProcessor:
 
 
 if __name__ == "__main__":
-    speech = SpeechProcessor()
-    result = speech.transcribe()
-    print("You said:", result)
+   #  speech = SpeechProcessor()
+   #  result = speech.transcribe()
+   #  print("You said:", result)
+   result = speechProcessing("output.wav")
+   print(result)
