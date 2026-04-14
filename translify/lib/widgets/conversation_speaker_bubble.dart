@@ -18,6 +18,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
     required this.menuItemTextColor,
     required this.currentLanguage,
     required this.disabledColor,
+    required this.duration,
   });
 
   final String text;
@@ -34,9 +35,12 @@ class ConversationSpeakerBubble extends StatelessWidget {
   final String currentLanguage;
   final Color disabledColor;
 
+  final Duration duration;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: duration,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
