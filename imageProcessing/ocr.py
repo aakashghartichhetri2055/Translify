@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse, HTMLResponse
 from fastapi import HTTPException
 import asyncio
@@ -10,6 +10,8 @@ import threading
 import time
 import numpy as np
 import os
+import re
+import requests
 
 CAPTURE_PATH = "captured_frame.jpg"    # path where snapshot is saved to disk
 
@@ -27,6 +29,7 @@ class Camera:
         self._mode = "live"
         self._capture_jepg = None
         self._captured_text = ""
+        self.translated_text = ""
 
     # This start the camera
     def start(self):
@@ -112,7 +115,20 @@ class Camera:
 
         return gray
     
-    def capture(self):
+    def translate_text(self, text, source_lang="auto", target_lang="en"):
+        try:
+            response = requests.post("http://172.17.0.1:5000/translate", json={
+                "q": text,
+                "source": source_lang,
+                "target": target_lang,
+                "format": "text"
+            })
+            return response.json()["translatedText"]
+        except Exception as e:
+            print(f"[translate] failed: {e}")
+            return text  # fall back to original text
+    
+    def capture(self, target_language="es"):
         # grab latest jpeg from self._lastest_jepg
         with self._lock:
             jpeg_bytes = self._lastest_jepg
@@ -154,6 +170,9 @@ class Camera:
         print("-" * 50)
         print(text.strip() if text.strip() else "(no text detected)")
         print("=" * 50 + "\n")
+
+        # Translate the detected text
+        translated = self.translate_text(text, source_lang="auto", target_lang=target_language)
 
         # Draw bounding boxes around each detected word
         n_boxes = len(data["text"])
@@ -204,6 +223,7 @@ class Camera:
         with self._state_lock:
             self._captured_jpeg = captured_jpeg.tobytes() if ret else jpeg_bytes
             self._captured_text = text
+            self._translated_text = translated
 
             # set self._mode = "captured"
             self._mode = "captured"
@@ -241,7 +261,7 @@ class Camera:
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + jpeg_bytes + b"\r\n"
             )
-        
+    
 camera = None   # global camera instance
 
 # lifespan manager that handle startup and shutdown
@@ -277,106 +297,178 @@ async def lifespan(app : FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Simple Html testing for frontend
+# HTML Interface with translation support
 @app.get("/", response_class=HTMLResponse)
-
 def index():
-    """Serves the frontend page with live stream and capture button."""
     return """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>OCR Camera</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: #eee;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      gap: 16px;
-    }
-    h1 { margin: 0; font-size: 1.2rem; color: #0f0; }
-    img#feed {
-      width: 100%;
-      max-width: 720px;
-      border: 2px solid #333;
-      border-radius: 4px;
-    }
-    .controls { display: flex; gap: 12px; }
-    button {
-      padding: 10px 28px;
-      font-size: 1rem;
-      font-family: monospace;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #btn-capture { background: #0f0; color: #000; }
-    #btn-capture:disabled { background: #555; color: #888; cursor: not-allowed; }
-    #btn-reset { background: #444; color: #eee; }
-    #status { font-size: 0.85rem; color: #aaa; min-height: 1.2em; }
-    #text-output {
-      width: 100%;
-      max-width: 720px;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 4px;
-      padding: 12px;
-      white-space: pre-wrap;
-      min-height: 60px;
-      font-size: 0.9rem;
-      color: #0f0;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>OCR Camera with Translation</title>
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            color: #eee;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            gap: 16px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: #0f0; }
+        h2 { margin: 0; font-size: 1.2rem; color: #0f0; }
+        img#feed {
+            width: 100%;
+            max-width: 720px;
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 28px;
+            font-size: 1rem;
+            font-family: monospace;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #btn-capture { background: #0f0; color: #000; }
+        #btn-capture:disabled { background: #555; color: #888; cursor: not-allowed; }
+        #btn-reset { background: #444; color: #eee; }
+        select {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-family: monospace;
+            background: #333;
+            color: #eee;
+            border: 1px solid #0f0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .output-panel {
+            width: 100%;
+            max-width: 720px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+        }
+        .output-label {
+            color: #0f0;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        #detected-text {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 80px;
+            font-size: 0.9rem;
+        }
+        #translated-text {
+            background: #222;
+            border: 1px solid #0f0;
+            border-radius: 4px;
+            padding: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 80px;
+            font-size: 1rem;
+            color: #0f0;
+        }
+        #status {
+            font-size: 0.85rem;
+            color: #aaa;
+            min-height: 1.2em;
+        }
+    </style>
 </head>
 <body>
-  <h1>OCR Camera</h1>
-  <img id="feed" src="/video" alt="camera feed" />
-  <div class="controls">
-    <button id="btn-capture" onclick="capture()">Capture</button>
-    <button id="btn-reset" onclick="reset()">Reset</button>
-  </div>
-  <div id="status">Live</div>
-  <div id="text-output">(detected text will appear here)</div>
- 
-  <script>
-    const feed        = document.getElementById("feed");
-    const status      = document.getElementById("status");
-    const textOutput  = document.getElementById("text-output");
-    const btnCapture  = document.getElementById("btn-capture");
- 
-    async function capture() {
-      btnCapture.disabled = true;
-      status.textContent  = "Processing...";
-      textOutput.textContent = "";
- 
-      try {
-        const res = await fetch("/capture", { method: "POST" });
-        if (!res.ok) throw new Error("Server error: " + res.status);
-        const data = await res.json();
- 
-        // Swap stream to the annotated static image (cache bust with timestamp)
-        feed.src = "/captured_image?" + Date.now();
-        status.textContent = "Captured";
-        textOutput.textContent = data.text.trim() || "(no text detected)";
-      } catch (err) {
-        status.textContent = "Error: " + err.message;
-      } finally {
-        btnCapture.disabled = false;
-      }
-    }
- 
-    async function reset() {
-      await fetch("/reset", { method: "POST" });
-      feed.src = "/video";
-      status.textContent = "Live";
-      textOutput.textContent = "(detected text will appear here)";
-    }
-  </script>
+    <h1>OCR Camera with Translation</h1>
+    <img id="feed" src="/video" alt="camera feed" />
+    
+    <div class="controls">
+        <select id="target-lang">
+            <option value="es">Spanish (es)</option>
+            <option value="en">English (en)</option>
+        </select>
+        <button id="btn-capture" onclick="capture()">Capture & Translate</button>
+        <button id="btn-reset" onclick="reset()">Reset</button>
+    </div>
+    
+    <div id="status">Live - Ready to capture</div>
+    
+    <div class="output-panel">
+        <div class="output-label">Detected Text (OCR):</div>
+        <div id="detected-text">(no text detected yet)</div>
+        
+        <div class="output-label">Translation:</div>
+        <div id="translated-text">(translation will appear here)</div>
+    </div>
+
+    <script>
+        const feed = document.getElementById("feed");
+        const statusDiv = document.getElementById("status");
+        const detectedDiv = document.getElementById("detected-text");
+        const translatedDiv = document.getElementById("translated-text");
+        const btnCapture = document.getElementById("btn-capture");
+        const targetLang = document.getElementById("target-lang");
+
+        async function capture() {
+            btnCapture.disabled = true;
+            statusDiv.textContent = "Processing OCR and translation...";
+            detectedDiv.textContent = "(processing...)";
+            translatedDiv.textContent = "(translating...)";
+
+            try {
+                const lang = targetLang.value;
+                const res = await fetch("/capture", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target_language: lang })
+                });
+                
+                if (!res.ok) throw new Error("Server error: " + res.status);
+                
+                const data = await res.json();
+                
+                // Update the feed to show annotated image
+                feed.src = "/captured_image?" + Date.now();
+                
+                // Display results
+                detectedDiv.textContent = data.detected_text.trim() || "(no text detected)";
+                translatedDiv.textContent = data.translated_text.trim() || "(no translation available)";
+                
+                statusDiv.textContent = "Capture complete!";
+            } catch (err) {
+                statusDiv.textContent = "Error: " + err.message;
+                detectedDiv.textContent = "(error occurred)";
+                translatedDiv.textContent = "(error occurred)";
+            } finally {
+                btnCapture.disabled = false;
+            }
+        }
+
+        async function reset() {
+            await fetch("/reset", { method: "POST" });
+            feed.src = "/video";
+            statusDiv.textContent = "Live - Ready to capture";
+            detectedDiv.textContent = "(no text detected yet)";
+            translatedDiv.textContent = "(translation will appear here)";
+        }
+    </script>
 </body>
 </html>
 """
@@ -398,20 +490,18 @@ def video():
     )
 
 @app.post("/capture")
-async def capture():
-    """
-    Triggers a snapshot:
-    - Saves the frame to disk.
-    - Runs OCR.
-    - Overlays detected text.
-    - Returns the detected text as JSON.
-    """
+async def capture(request: Request):
     if camera is None:
         raise HTTPException(status_code=503, detail="Camera not available")
     try:
+        body = await request.json()
+        target_language = body.get("target_language", "en")
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, camera.capture)
-        return JSONResponse({"text": camera._captured_text})
+        await loop.run_in_executor(None, camera.capture, target_language)
+        return JSONResponse({
+            "detected_text": camera._captured_text,
+            "translated_text": camera._translated_text
+        })
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
