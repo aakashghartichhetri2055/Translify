@@ -1,20 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import jwt
+import httpx
 
 from app.auth_service import AuthService
 from app.config import SECRET_KEY, ALGORITHM
 from app.database import get_db
-from app.schemas import SignUpRequest, TokenResponse, TranslationRequest, TranslationResponse, UserResponse
+from app.schemas import (
+    SignUpRequest,
+    TokenResponse,
+    TranslationRequest,
+    TranslationResponse,
+    UserResponse,
+)
 from app.translate_service import TranslationService
-from app.models import TranslationHistory, User 
+from app.models import TranslationHistory, User
 
 router = APIRouter()
 auth_service = AuthService()
 translation_service = TranslationService()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+# IMPORTANT:
+# Your OCR teammate's FastAPI app must run on port 8001, not 8000
+OCR_SERVICE_URL = "http://127.0.0.1:8001"
+
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -43,53 +55,61 @@ def get_current_user(
 
     return user
 
+
 @router.post("/signup", response_model=UserResponse)
 def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     try:
         user = auth_service.create_user(db, request.email, request.password)
-        return user 
-    except ValueError as e: 
+        return user
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+
 @router.post("/login", response_model=TokenResponse)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), 
-    db: Session = Depends(get_db), 
-): 
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
     user = auth_service.authenticate_user(db, form_data.username, form_data.password)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.", 
+            detail="Incorrect email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token = auth_service.create_access_token(user.email)
     return TokenResponse(access_token=access_token)
+
 
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
 @router.post("/translate", response_model=TranslationResponse)
-async def translate(request: TranslationRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user),):
+async def translate(
+    request: TranslationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     try:
         translated_text = await translation_service.translate_text(
-            text=request.text, 
+            text=request.text,
             source_language=request.source_language,
-            target_language=request.target_language
+            target_language=request.target_language,
         )
 
         if request.store_history:
             history = TranslationHistory(
-                user_id=current_user.id, 
-                original_text=request.text, 
-                translated_text=translated_text, 
+                user_id=current_user.id,
+                original_text=request.text,
+                translated_text=translated_text,
                 source_language=request.source_language,
                 target_language=request.target_language,
-                mode=request.mode, 
-                store_history=request.store_history
+                mode=request.mode,
+                store_history=request.store_history,
             )
             db.add(history)
             db.commit()
@@ -98,12 +118,131 @@ async def translate(request: TranslationRequest, db: Session = Depends(get_db), 
             original_text=request.text,
             translated_text=translated_text,
             source_language=request.source_language,
-            target_language=request.target_language, 
-            mode=request.mode
+            target_language=request.target_language,
+            mode=request.mode,
         )
-    
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/translate/image-to-text")
+async def translate_image_to_text(
+    source_language: str = Form(...),
+    target_language: str = Form(...),
+    store_history: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Real OCR integration with current ocr.py service.
+    It triggers the OCR service's /capture endpoint,
+    receives extracted text, and translates it.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            capture_response = await client.post(f"{OCR_SERVICE_URL}/capture")
+
+        if capture_response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"OCR service error: {capture_response.text}"
+            )
+
+        ocr_data = capture_response.json()
+        extracted_text = ocr_data.get("text", "").strip()
+
+        if not extracted_text:
+            raise HTTPException(
+                status_code=400,
+                detail="OCR service returned no text."
+            )
+
+        translated_text = await translation_service.translate_text(
+            text=extracted_text,
+            source_language=source_language,
+            target_language=target_language,
+        )
+
+        if store_history:
+            history = TranslationHistory(
+                user_id=current_user.id,
+                original_text=extracted_text,
+                translated_text=translated_text,
+                source_language=source_language,
+                target_language=target_language,
+                mode="image",
+                store_history=store_history,
+            )
+            db.add(history)
+            db.commit()
+
+        return {
+            "original_text": extracted_text,
+            "translated_text": translated_text,
+            "source_language": source_language,
+            "target_language": target_language,
+            "mode": "image",
+            "ocr_source": "camera_capture"
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not reach OCR service: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/translate/speech-to-text")
+async def translate_speech_to_text(
+    source_language: str = Form(...),
+    target_language: str = Form(...),
+    store_history: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Temporary mock speech route.
+    Replace extracted_text later when speech_demo.py becomes a FastAPI API.
+    """
+    try:
+        extracted_text = "Hola amigo"
+
+        translated_text = await translation_service.translate_text(
+            text=extracted_text,
+            source_language=source_language,
+            target_language=target_language,
+        )
+
+        if store_history:
+            history = TranslationHistory(
+                user_id=current_user.id,
+                original_text=extracted_text,
+                translated_text=translated_text,
+                source_language=source_language,
+                target_language=target_language,
+                mode="speech",
+                store_history=store_history,
+            )
+            db.add(history)
+            db.commit()
+
+        return {
+            "original_text": extracted_text,
+            "translated_text": translated_text,
+            "source_language": source_language,
+            "target_language": target_language,
+            "mode": "speech",
+            "speech_source": "mock"
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
