@@ -174,43 +174,87 @@ class Camera:
         # Translate the detected text
         translated = self.translate_text(text, source_lang="auto", target_lang=target_language)
 
-        # Draw bounding boxes around each detected word
+
+        # Group detected words by block number
+        from collections import defaultdict
+        blocks = defaultdict(list)
         n_boxes = len(data["text"])
         for i in range(n_boxes):
             word = data["text"][i].strip()
             conf = int(data["conf"][i])
-
-            # Skip empty words and low-confidence detections (conf == -1 means block/line level)
+ 
+            # Skip empty words and low-confidence detections
             if not word or conf < 40:
                 continue
-
+ 
             # Scale bounding box coordinates back down to match the original frame
             x = int(data["left"][i]  / scale)
             y = int(data["top"][i]   / scale)
             w = int(data["width"][i] / scale)
             h = int(data["height"][i]/ scale)
-
-            # Draw green bounding box
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            # Draw label background for readability
-            label = f"{word} ({conf}%)"
-            (label_w, label_h), baseline = cv2.getTextSize(
-                label, cv2.FONT_HERSHEY_PLAIN, 1.2, 1
-            )
-            label_y = y - 4 if y - label_h - 4 >= 0 else y + h + label_h + 4
-            cv2.rectangle(
-                frame,
-                (x, label_y - label_h - baseline),
-                (x + label_w, label_y + baseline),
-                (0, 255, 0),
-                cv2.FILLED,
-            )
-            cv2.putText(
-                frame, label, (x, label_y),
-                cv2.FONT_HERSHEY_PLAIN, 1.2,
-                (0, 0, 0), 1, cv2.LINE_AA,
-            )
+ 
+            blocks[data["block_num"][i]].append((x, y, w, h, word))
+ 
+        # For each block: draw one bounding box around it and overlay translated text
+        for block_num, words_in_block in blocks.items():
+            if not words_in_block:
+                continue
+ 
+            # Compute the union bounding box for the whole block with small padding
+            bx  = max(min(b[0]       for b in words_in_block) - 4, 0)
+            by  = max(min(b[1]       for b in words_in_block) - 4, 0)
+            bx2 = min(max(b[0]+b[2]  for b in words_in_block) + 4, frame.shape[1])
+            by2 = min(max(b[1]+b[3]  for b in words_in_block) + 4, frame.shape[0])
+ 
+            # Translate just this block's text
+            block_text       = " ".join(b[4] for b in words_in_block)
+            block_translated = self.translate_text(block_text, source_lang="auto", target_lang=target_language)
+ 
+            # Semi-transparent dark fill to cover the original text
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (bx, by), (bx2, by2), (20, 20, 20), cv2.FILLED)
+            cv2.addWeighted(overlay, 0.88, frame, 0.12, 0, frame)
+ 
+            # Green border around the block
+            cv2.rectangle(frame, (bx, by), (bx2, by2), (0, 255, 0), 2)
+ 
+            # Fit font size to the box: start at 0.55 and shrink if text won't fit
+            font      = cv2.FONT_HERSHEY_SIMPLEX
+            thickness = 1
+            padding   = 6
+            box_w     = bx2 - bx - padding * 2
+            box_h     = by2 - by - padding * 2
+ 
+            font_scale = 0.55
+            while font_scale > 0.25:
+                (_, ch), _ = cv2.getTextSize("A", font, font_scale, thickness)
+                line_h     = int(ch * 2.2)
+                # Word-wrap at current scale
+                lines, current = [], ""
+                for w in block_translated.split():
+                    test      = (current + " " + w).strip()
+                    (tw, _), _ = cv2.getTextSize(test, font, font_scale, thickness)
+                    if tw <= box_w:
+                        current = test
+                    else:
+                        if current:
+                            lines.append(current)
+                        current = w
+                if current:
+                    lines.append(current)
+                # Check if all lines fit vertically
+                if len(lines) * line_h <= box_h:
+                    break
+                font_scale -= 0.05
+ 
+            # Draw each wrapped line of translated text inside the box
+            text_y = by + padding + int(cv2.getTextSize("A", font, font_scale, thickness)[0][1])
+            for line in lines:
+                if text_y > by2 - padding:
+                    break
+                cv2.putText(frame, line, (bx + padding, text_y),
+                            font, font_scale, (0, 255, 0), thickness, cv2.LINE_AA)
+                text_y += line_h
         
         # Save raw snapshot after OCR
         cv2.imwrite(CAPTURE_PATH, frame)
