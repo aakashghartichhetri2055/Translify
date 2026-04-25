@@ -58,5 +58,5 @@ final GoRouter router = GoRouter(
       },
     ),
   ],
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.home,
 );

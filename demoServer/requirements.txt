@@ -1,0 +1,6 @@
+# Speech Processing Requirements
+faster-whisper 
+sounddevice
+fastapi
+uvicorn
+python-multipart

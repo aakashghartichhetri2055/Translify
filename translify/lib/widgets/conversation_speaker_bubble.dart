@@ -52,7 +52,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(
           MediaQuery.of(context).size.width * .05,
           MediaQuery.of(context).size.height * .03,
-          0,
+          MediaQuery.of(context).size.width * .05,
           MediaQuery.of(context).size.height * .03,
         ),
         child: Column(
@@ -61,7 +61,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
 
           children: [
             // The text of the speech
-            Text(text, style: TextStyle(color: textColor)),
+            Text(text, style: TextStyle(color: textColor, fontSize: 15)),
 
             // The button to select a langauge
             LanguageSelector(

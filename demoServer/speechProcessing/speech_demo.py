@@ -7,7 +7,10 @@ import os
 def speechProcessing(filepath):
    model = WhisperModel("base", device="cpu", compute_type="int8")
 
-   segments, _ = model.transcribe(filepath)
+   segments, languageInfo = model.transcribe(filepath)
+
+   print(f"Detected language: {languageInfo.language}")
+   print(f"Confidence: {languageInfo.language_probability:.2f}")
 
    text = ""
    for segment in segments:

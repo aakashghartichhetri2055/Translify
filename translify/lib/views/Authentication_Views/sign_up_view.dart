@@ -53,7 +53,7 @@ class _SignUpViewState extends State<SignUpView> {
         if (!contextCheck.mounted) return;
 
         // Send the user back to the login page
-        context.pop();
+        context.pop;
       }
     } catch (error) {
       print(error);
