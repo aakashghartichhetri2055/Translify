@@ -32,6 +32,26 @@ Currently Enabled Languages:
       - This step results in additional startup time
       - Something to think about when thinking of deploying the Translify server (main server + other component servers) somewhere
 
+# How To Use
+
+There is only one route: "/translate"
+
+Expected headers:
+
+```
+"Content-Type: application/json"
+```
+
+Expected body parameters:
+
+```json
+{
+   "text": The text that you want to translate,
+   "sourceLanguage": The `ISO 639-1` language code for the source language. Can use the code sent by the frontend here,
+   "targetLanguage": The `ISO 639-1` language code for the target language. Can use the code sent by the frontend here
+}
+```
+
 # Tests
 
 ```bash
