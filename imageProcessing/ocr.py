@@ -30,6 +30,7 @@ class Camera:
         self._capture_jepg = None
         self._captured_text = ""
         self.translated_text = ""
+        self._contents = []     # list of {original_text, translated_text, bbox}
 
     # This start the camera
     def start(self):
@@ -194,7 +195,10 @@ class Camera:
             h = int(data["height"][i]/ scale)
  
             blocks[data["block_num"][i]].append((x, y, w, h, word))
- 
+
+        # Build contents array: one entry per detected block
+        contents = []
+
         # For each block: draw one bounding box around it and overlay translated text
         for block_num, words_in_block in blocks.items():
             if not words_in_block:
@@ -209,6 +213,19 @@ class Camera:
             # Translate just this block's text
             block_text       = " ".join(b[4] for b in words_in_block)
             block_translated = self.translate_text(block_text, source_lang="auto", target_lang=target_language)
+
+            # Store this block's data: original text, translation, and bounding box.
+            # bbox uses top-left corner (x, y) plus width and height — same convention as pytesseract.
+            contents.append({
+                "original_text":   block_text,
+                "translated_text": block_translated,
+                "bbox": {
+                    "x": bx,
+                    "y": by,
+                    "w": bx2 - bx,
+                    "h": by2 - by,
+                },
+            })
  
             # Semi-transparent dark fill to cover the original text
             overlay = frame.copy()
@@ -260,6 +277,18 @@ class Camera:
         cv2.imwrite(CAPTURE_PATH, frame)
         print(f"[snapshot] raw frame saved → {os.path.abspath(CAPTURE_PATH)}")
 
+        # Print contents array to terminal
+        print("\n" + "=" * 50)
+        print("[CONTENTS] Detected blocks:")
+        print("-" * 50)
+        for i, entry in enumerate(contents):
+            bbox = entry["bbox"]
+            print(f"  Block {i + 1}:")
+            print(f"    Original   : {entry['original_text']}")
+            print(f"    Translated : {entry['translated_text']}")
+            print(f"    BBox       : x={bbox['x']}, y={bbox['y']}, w={bbox['w']}, h={bbox['h']}")
+        print("=" * 50 + "\n")
+
         # re-encode to jpeg, store in self._captured_jpeg
         ret, captured_jpeg = cv2.imencode(".jpg", frame)
         
@@ -268,6 +297,7 @@ class Camera:
             self._captured_jpeg = captured_jpeg.tobytes() if ret else jpeg_bytes
             self._captured_text = text
             self._translated_text = translated
+            self._contents = contents
 
             # set self._mode = "captured"
             self._mode = "captured"
@@ -277,6 +307,7 @@ class Camera:
         self._mode = "live"
         self._captured_jpeg = None
         self._captured_text = ""
+        self._contents = []
 
     # generator for streaming video frames as multipart HTTP response
     def generate_frame(self):
@@ -544,7 +575,8 @@ async def capture(request: Request):
         await loop.run_in_executor(None, camera.capture, target_language)
         return JSONResponse({
             "detected_text": camera._captured_text,
-            "translated_text": camera._translated_text
+            "translated_text": camera._translated_text,
+            "contents": camera._contents,
         })
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
