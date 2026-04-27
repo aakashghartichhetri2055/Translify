@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from faster_whisper import WhisperModel
 import shutil
 import os
@@ -6,7 +6,8 @@ import os
 app = FastAPI()
 
 print("Loading model...")
-model = WhisperModel("base", device="cpu", compute_type="int8")
+loaded_model_name = "base"
+model = WhisperModel(loaded_model_name, device="cpu", compute_type="int8")
 print("Model loaded.")
 
 
@@ -16,15 +17,26 @@ def home():
 
 
 @app.post("/speech/transcribe")
-async def transcribe(file: UploadFile = File(...)):
+async def transcribe(
+    file: UploadFile = File(...),
+    language: str = Form("en"),
+    model_name: str = Form("base")
+):
     file_path = f"temp_{file.filename}"
 
-    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    selected_model = model
+
     
-    segments, info = model.transcribe(file_path)
+    if model_name != loaded_model_name:
+        selected_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+
+    segments, info = selected_model.transcribe(
+        file_path,
+        language=language
+    )
 
     text = ""
     for segment in segments:
@@ -33,6 +45,8 @@ async def transcribe(file: UploadFile = File(...)):
     os.remove(file_path)
 
     return {
+        "filename": file.filename,
+        "model": model_name,
         "text": text.strip(),
         "language": info.language
     }
