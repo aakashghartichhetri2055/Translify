@@ -56,5 +56,5 @@
         "--security-opt=seccomp=unconfined"  // If you encounter permission issues
     ],
 
-    "forwardPorts": [8000]
+    "forwardPorts": [8001] // Forwards container port 8001 to host for FastAPI access
 }

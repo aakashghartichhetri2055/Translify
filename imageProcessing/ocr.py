@@ -610,4 +610,4 @@ def reset():
 # Automatically run uvicorn server, for running manually see instruction in docker.md
 # With this you can run 'python3 ocr.py' in the terminal
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
