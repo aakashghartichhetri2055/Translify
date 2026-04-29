@@ -18,6 +18,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
     required this.menuItemTextColor,
     required this.currentLanguage,
     required this.disabledColor,
+    required this.duration,
   });
 
   final String text;
@@ -34,9 +35,12 @@ class ConversationSpeakerBubble extends StatelessWidget {
   final String currentLanguage;
   final Color disabledColor;
 
+  final Duration duration;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: duration,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
@@ -48,7 +52,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(
           MediaQuery.of(context).size.width * .05,
           MediaQuery.of(context).size.height * .03,
-          0,
+          MediaQuery.of(context).size.width * .05,
           MediaQuery.of(context).size.height * .03,
         ),
         child: Column(
@@ -57,7 +61,7 @@ class ConversationSpeakerBubble extends StatelessWidget {
 
           children: [
             // The text of the speech
-            Text(text, style: TextStyle(color: textColor)),
+            Text(text, style: TextStyle(color: textColor, fontSize: 15)),
 
             // The button to select a langauge
             LanguageSelector(
