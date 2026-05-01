@@ -5,7 +5,7 @@ import jwt
 import httpx
 
 from app.auth_service import AuthService
-from app.config import SECRET_KEY, ALGORITHM, IMAGE_TO_TEXT_SERVICE
+from app.config import SECRET_KEY, ALGORITHM, IMAGE_TO_TEXT_SERVICE, SPEECH_TO_TEXT_SERVICE
 from app.database import get_db
 from app.schemas import (
     SignUpRequest,
@@ -140,11 +140,10 @@ async def translate_image_to_text(
     Real OCR integration with Image to Text service
     It triggers the OCR service's /capture endpoint,
     receives extracted text, and translates it.
-
-    if not file.filename.lower().endswith((".jpg", ".jpeg")):
+    """
+    if not image.filename.lower().endswith((".jpg", ".jpeg")):
         return {"error": "Only .jpg or jpeg files are allowed"}
 
-    """
     try:
         # Make the request to the image to text service to get extracted text
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -172,13 +171,13 @@ async def translate_image_to_text(
         
         # Translate each of the extracted text 
         for item in extracted_text:
-            translation = await translation_service.translate_text(
+            translation_response = await translation_service.translate_text(
                   text=item["text"],
                   source_language=source_language,
                   target_language=target_language,
             )
 
-            item["translation"] = translation
+            item["translation"] = translation_response
 
         if store_history:
             history = TranslationHistory(
@@ -210,28 +209,51 @@ async def translate_image_to_text(
 async def translate_speech_to_text(
     source_language: str = Form(...),
     target_language: str = Form(...),
+    recording: UploadFile = File(...),
     store_history: bool = Form(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Temporary mock speech route.
-    Replace extracted_text later when speech_demo.py becomes a FastAPI API.
+    Speech to text transcription and translatio
     """
     try:
-        extracted_text = "Hola amigo"
+        if not recording.filename.lower().endswith((".wav")):
+            return {"error": "Only .wav files are allowed"}
+        
+        # Transcribe the speech into text
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            contents = await recording.read()
 
-        translated_text = await translation_service.translate_text(
-            text=extracted_text,
+            transcription_request_body = {
+                "file": (recording.filename, contents, recording.content_type)
+            }
+
+            transcription_response = await client.post(
+                f"{SPEECH_TO_TEXT_SERVICE}/speech/transcribe", 
+                files = transcription_request_body, 
+                data = {
+                    "language": source_language
+                }
+            )
+
+            transcription_data = transcription_response.json()
+            transcription = transcription_data["text"]
+
+        # Translate the text
+        translation_response = await translation_service.translate_text(
+            text=transcription,
             source_language=source_language,
             target_language=target_language,
         )
 
+        translation = translation_response
+
         if store_history:
             history = TranslationHistory(
                 user_id=current_user.id,
-                original_text=extracted_text,
-                translated_text=translated_text,
+                original_text=transcription,
+                translated_text=translation,
                 source_language=source_language,
                 target_language=target_language,
                 mode="speech",
@@ -241,12 +263,8 @@ async def translate_speech_to_text(
             db.commit()
 
         return {
-            "original_text": extracted_text,
-            "translated_text": translated_text,
-            "source_language": source_language,
-            "target_language": target_language,
-            "mode": "speech",
-            "speech_source": "mock"
+            "original_text": transcription,
+            "translated_text": translation,
         }
 
     except ValueError as e:
