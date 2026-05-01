@@ -7,6 +7,8 @@ Main backend server can call this server for translations
 from fastapi import FastAPI
 from fastapi import HTTPException
 
+import uvicorn
+
 from pydantic import BaseModel, Field
 
 from translationEngine import TranslationEngine
@@ -43,3 +45,6 @@ def translate(request: TranslationRequest):
       return TranslationResponse(translatedText = result)
    except ValueError as e:
       raise HTTPException(status_code = 422, detail = str(e))
+   
+if __name__ == '__main__':
+    uvicorn.run(app, host="127.0.0.1", port=9000)

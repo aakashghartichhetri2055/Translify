@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from faster_whisper import WhisperModel
+import uvicorn
 import shutil
 import os
 
@@ -41,3 +42,6 @@ async def transcribe(
         "text": text.strip(),
         "language": info.language
     }
+
+if __name__ == '__main__':
+   uvicorn.run(app, host="127.0.0.1", port=8002)
