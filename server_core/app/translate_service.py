@@ -1,9 +1,9 @@
 import httpx
-from app.config import LIBRETRANSLATE, SUPPORTED_LANGUAGES
+from app.config import TRANSLATE_SERVICE, SUPPORTED_LANGUAGES
 
 class TranslationService:
     def __init__(self):
-        self.base_url = LIBRETRANSLATE.rstrip("/")
+        self.base_url = TRANSLATE_SERVICE.rstrip("/")
 
     def validate_language(self, lang: str):
         if lang not in SUPPORTED_LANGUAGES:
@@ -22,10 +22,9 @@ class TranslationService:
             return text
 
         payload = {
-            "q": text,
-            "source": source_language,
-            "target": target_language,
-            "format": "text"
+            "text": text,
+            "sourceLanguage": source_language,
+            "targetLanguage": target_language
         }
 
         async with httpx.AsyncClient(timeout=15.0) as client:

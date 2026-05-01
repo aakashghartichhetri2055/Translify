@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:translify/services/speech_translate_service.dart';
 import 'package:translify/widgets/alert.dart';
 import 'package:translify/widgets/conversation_speaker_bubble.dart';
 import 'package:translify/languages/languages.dart';
@@ -21,16 +22,59 @@ class ConversationTranslationView extends StatefulWidget {
 
 class _ConversationTranslationViewState
     extends State<ConversationTranslationView> {
+  // Variables to control the UI flash duration when a translation is received
+  Duration lengthOfColorSwapAnimation = Duration(
+    milliseconds: 400,
+  ); // When the color changes, the peroid of time the animation of the switch plays for
+  Duration durationBeforeSwitchingBack = Duration(
+    milliseconds: 400,
+  ); // After the color has changed, how long to wait for before it switches back to the normal color
+
   // Variables for the first speaker
   String speakerOneCurrentText = "Press the microphone to say something";
   String speakerOneCurrentLanguage = "en";
   String speakerOneCurrentLanguageButtonMessage = "Current Language: English";
+  Color speakerOneBoxColor = TranslifyColors.nonAdminButtonColor;
+
+  // A function to show the UI has updated through a flash of color
+  Future<void> speakerOneFlash() async {
+    // Change the color
+    setState(() {
+      speakerOneBoxColor =
+          TranslifyColors.conversationTranslationSecondSpeakerColor;
+    });
+
+    // Wait a bit
+    await Future.delayed(durationBeforeSwitchingBack);
+
+    // Change the color back
+    setState(() {
+      speakerOneBoxColor = TranslifyColors.nonAdminButtonColor;
+    });
+  }
 
   // Variables for the second speaker
   String speakerTwoCurrentText =
       "Press the microphone to say something. This is the second speaker";
   String speakerTwoCurrentLanguage = "es";
   String speakerTwoCurrentLanguageButtonMessage = "Current Language: Spanish";
+  Color speakerTwoBoxColor = TranslifyColors.nonAdminButtonColor;
+
+  Future<void> speakerTwoFlash() async {
+    // Change the color
+    setState(() {
+      speakerTwoBoxColor =
+          TranslifyColors.conversationTranslationSecondSpeakerColor;
+    });
+
+    // Wait a bit
+    await Future.delayed(durationBeforeSwitchingBack);
+
+    // Change the color back
+    setState(() {
+      speakerTwoBoxColor = TranslifyColors.nonAdminButtonColor;
+    });
+  }
 
   // Recorder object
   late final AudioRecorder recorder;
@@ -104,8 +148,40 @@ class _ConversationTranslationViewState
     //  print(exists);
     // But how to access the actual file?
 
+    String source = "";
+    String target = "";
+
+    if (currentSpeaker == "primary") {
+      source = speakerOneCurrentLanguage;
+      target = speakerTwoCurrentLanguage;
+    } else if (currentSpeaker == "secondary") {
+      source = speakerTwoCurrentLanguage;
+      target = speakerOneCurrentLanguage;
+    }
+
     // Begin the process of sending the recording to the backend here
-    print(filePath);
+    (String, String) response = await speechTranslateService(
+      filePath!,
+      source,
+      target,
+    );
+
+    print(response);
+
+    if (currentSpeaker == "primary") {
+      setState(() {
+        speakerOneCurrentText = response.$1;
+        speakerTwoCurrentText = response.$2;
+      });
+      await speakerTwoFlash();
+    } else if (currentSpeaker == "secondary") {
+      setState(() {
+        speakerOneCurrentText = response.$2;
+        speakerTwoCurrentText = response.$1;
+      });
+      await speakerOneFlash();
+    }
+
     setState(() {
       recording = false;
       currentSpeaker = null;
@@ -258,7 +334,7 @@ class _ConversationTranslationViewState
             ConversationSpeakerBubble(
               text: speakerOneCurrentText,
               textColor: TranslifyColors.headerTextColor,
-              backgroundColor: TranslifyColors.nonAdminButtonColor,
+              backgroundColor: speakerOneBoxColor,
               updateLanguageChoice: (language) => {
                 updateSpeakerOneLanguageChoice(language),
               },
@@ -271,6 +347,7 @@ class _ConversationTranslationViewState
                   TranslifyColors.convesationTranslationAccentColor,
               currentLanguage: speakerOneCurrentLanguage,
               disabledColor: TranslifyColors.disabledOptionColor,
+              duration: lengthOfColorSwapAnimation,
             ),
 
             SizedBox(height: MediaQuery.of(context).size.height * .05),
@@ -279,7 +356,7 @@ class _ConversationTranslationViewState
             ConversationSpeakerBubble(
               text: speakerTwoCurrentText,
               textColor: TranslifyColors.headerTextColor,
-              backgroundColor: TranslifyColors.nonAdminButtonColor,
+              backgroundColor: speakerTwoBoxColor,
               updateLanguageChoice: (language) => {
                 updateSpeakerTwoLanguageChoice(language),
               },
@@ -292,6 +369,7 @@ class _ConversationTranslationViewState
                   TranslifyColors.conversationTranslationSecondSpeakerColor,
               currentLanguage: speakerTwoCurrentLanguage,
               disabledColor: TranslifyColors.disabledOptionColor,
+              duration: lengthOfColorSwapAnimation,
             ),
 
             SizedBox(height: MediaQuery.of(context).size.height * .05),
@@ -320,3 +398,11 @@ class _ConversationTranslationViewState
     );
   }
 }
+
+/**
+ * 
+ * To Do 
+ * 1. Set up the route for the backend server to receive the audio file
+ * 2. Set up the speech processing
+ * 4. Test
+ */

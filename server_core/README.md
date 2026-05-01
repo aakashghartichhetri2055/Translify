@@ -1,132 +1,166 @@
 # Server Core
-The **Server Core** is a high-performance FastAPI service that powers real-time multimodal translation. It acts as the central orchestrator, receiving text from: OCR (image processing), Speech-to-text pipelines, and Direct user input, and translating it using a self-hosted **LibreTranslate Engine**, then returning results instantly. It also provides, secure JWT-based authentication and optional translation history storage (in PostgreSQL)
+
+The **Server Core** is a high-performance FastAPI service that powers real-time multimodal translation. It acts as the central orchestrator, receiving text from: OCR (image processing), Speech-to-text pipelines, and Direct user input, and translating it with our Translate Engine, then returning results instantly. It also provides, secure JWT-based authentication and optional translation history storage (in PostgreSQL)
 
 ## Features
-* User authentication (JWT-based)
-* Real-time translation (en ↔ es)
-* Integration with OCR service (image → text → translate)
-* Speech-to-text route (currently mocked)
-* Translation history storage (optional)
-* Async FastAPI backend
-* PostgreSQL integration
-* Modular architecture (ready for full integration)
-* Self-hosted LibreTranslate (no external API dependency)
+
+- User authentication (JWT-based)
+- Real-time translation (en ↔ es)
+- Integration with OCR service (image → text → translate)
+- Integration with Speech transcription service (speech -> text -> translate)
+- Translation history storage (optional)
+- Async FastAPI backend
+- PostgreSQL integration
+- Modular architecture (ready for full integration)
 
 ## Environment Setup
+
 Create a .env file in the root:
+
+```
 DATABASE_URL=postgresql://acexeon:StrongPass123@localhost:4321/translify
-LIBRETRANSLATE=http://127.0.0.1:5000
+IMAGE_TO_TEXT_SERVICE=http://127.0.0.1:8001
+SPEECH_TO_TEXT_SERVICE=http://127.0.0.1:8002
+TRANSLATE_SERVICE=http://localhost:9000
 SUPPORTED_LANGUAGES=en,es
 SECRET_KEY=your_super_secret_key_here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
 
 1. PostgreSQL Setup (Mac - Homebrew)
-brew install postgresql@18
-brew services start postgresql@18
+   brew install postgresql@18
+   brew services start postgresql@18
 
 2. Create database:
-psql -h localhost -p 4321 postgres
-CREATE DATABASE translify;
-ALTER USER acexeon WITH PASSWORD 'StrongPass123';
+   psql -h localhost -p 4321 postgres
+   CREATE DATABASE translify;
+   ALTER USER acexeon WITH PASSWORD 'StrongPass123';
 
-3. LibreTranslate Setup
-Run locally: libretranslate --host 127.0.0.1 --port 5000
+3. For each of the three modules (imageProcessing, speechProcessing, translationEngine):
+   - Open a new terminal window
+   - Navigate to the respective folder within the Translify project
+   - Create a virtual environment: `python3 -m venv venv`
+   - Activate the virtual environment: `source venv/bin/activate`
+   - Install all requirements: `pip install -r requirements.txt`
+   - For imageProcessing only: Also install Tesseract OCR [using the instructions here for the respective platform](https://tesseract-ocr.github.io/tessdoc/Installation.html) - Make sure to also install the `tesseract-ocr-langcode` package
+   - Run main.py within each folder, and leave the process running
 
-Test: curl http://127.0.0.1:5000/languages
+**All three modules (imageProcessing, speechProcessing, translationEngine) must be running BEFORE running the main server below**
 
-OCR Service Setup (Required for Image Translation)
-OCR service must run on port 8001:
-ocr.py
-uvicorn.run(app, host="0.0.0.0", port=8001)
-
-4. Run Backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+4. Run Main Backend Server
+   - Open new terminal window
+   - Create new virtual environment and activate it
+   - Install required packages: `pip install -r requirements.txt`
+   - In terminal, run the server: `uvicorn app.main:app --reload`
 
 5. Backend runs on:
-http://127.0.0.1:8000
+   http://127.0.0.1:8000
 
 6. API Endpoints
-Method	Endpoint	Description
-POST	/signup	Create new user
-POST	/login	Login and get JWT token
-GET	/me	Get current user
+   Method Endpoint Description
 
-6. Translation
-Method	Endpoint	Description
-POST	/translate	Direct text translation
-POST	/translate/image-to-text	OCR → Translate
-POST	/translate/speech-to-text	Speech → Translate (mock)
+   POST /signup: Create new user
+
+   POST /login: Login and get JWT token
+
+   GET /me Get current user
+
+7. Translation Endpoints Description
+
+   POST /translate Direct text translation
+
+   POST /translate/image-to-text: Receive an image file, extract the text within the image, and return the translated text and bounding boxes
+
+   POST /translate/speech-to-text: Receive an audio file, transcribe the speech to text, and return the translated text
 
 ## API Testing (cURL)
+
 1. Signup
-curl -X POST http://127.0.0.1:8000/signup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "testuser@example.com",
-    "password": "mypassword123"
-  }'
+
+```bash
+   curl -X POST http://127.0.0.1:8000/signup \
+    -H "Content-Type: application/json" \
+    -d '{
+   "email": "testuser@example.com",
+   "password": "mypassword123"
+   }'
+```
 
 2. Login
-curl -X POST http://127.0.0.1:8000/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=testuser@example.com&password=mypassword123"
 
-Copy the token:
+```bash
+   curl -X POST http://127.0.0.1:8000/login \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=testuser@example.com&password=mypassword123"
+```
+
+Copy the token from the response for use in the tests below:
 {
-  "access_token": "...",
-  "token_type": "bearer"
+"access_token": "...",
+"token_type": "bearer"
 }
 
 3. Test Auth (/me)
-curl -X GET http://127.0.0.1:8000/me \
-  -H "Authorization: Bearer YOUR_TOKEN"
+
+```bash
+   curl -X GET http://127.0.0.1:8000/me \
+    -H "Authorization: Bearer YOUR_TOKEN"
+```
 
 4. Text Translation
-curl -X POST http://127.0.0.1:8000/translate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "text": "Hola, ¿cómo estás?",
-    "source_language": "es",
-    "target_language": "en",
-    "mode": "text",
-    "store_history": true
-  }'
 
-5. Image → Text → Translate (REAL OCR)
-curl -X POST http://127.0.0.1:8000/translate/image-to-text \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "source_language=es" \
-  -F "target_language=en" \
-  -F "store_history=true"
-   
-   Which will, trigger OCR camera capture then extract text and then translate it: 
+```bash
+   curl -X POST http://127.0.0.1:8000/translate \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer YOUR_TOKEN" \
+    -d '{
+   "text": "Hola, ¿cómo estás?",
+   "source_language": "es",
+   "target_language": "en",
+   "mode": "text",
+   "store_history": true
+   }'
+```
 
-7. Speech → Text → Translate
-curl -X POST http://127.0.0.1:8000/translate/speech-to-text \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "source_language=es" \
-  -F "target_language=en" \
-  -F "store_history=true"
+5. Image → Text → Translate
+
+```bash
+   curl -X POST "http://localhost:8000/translate/image-to-text" \
+   -H "Authorization: Bearer YOUR_TOKEN" \
+   -F "source_language=en" \
+   -F "target_language=es" \
+   -F "store_history=false" \
+   -F "image=@IMAGE_PATH_HERE"
+
+   # There are sample files to test with in imageProcessing folder
+```
+
+6. Speech → Text → Translate
+
+```bash
+   curl -X POST "http://localhost:8000/translate/speech-to-text" \
+   -H "Authorization: Bearer YOUR_TOKEN" \
+   -F "source_language=en" \
+   -F "target_language=es" \
+   -F "store_history=false" \
+   -F "recording=@AUDIO_PATH_HERE"
+
+   # There are sample files to test with in speechProcessing folder
+```
 
 ## API Documentation
+
 Swagger UI: http://127.0.0.1:8000/docs
 
-## Current Limitations
-* OCR uses camera capture, not file upload yet
-* Speech module is currently a local script (not API)
-* Speech route uses mock data temporarily
-
 ## Future Improvements
-* Add real speech API integration
-* Add image upload endpoint (instead of camera capture)
-* Support more languages
-* Dockerize all services
-* Add Redis caching
-* Improve translation quality (move beyond LibreTranslate)
-* Real-time streaming translation
+
+- Support more languages
+- Dockerize all services
+- Add Redis caching
+- Improve translation quality (possible change to TranslateGemma model via Ollama)
+- Real-time streaming translation
 
 # Authors
+
 Translify Capstone Project - Group 8

@@ -25,8 +25,9 @@ class MicrophoneRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SizedBox(width: MediaQuery.of(context).size.width * .2),
+        SizedBox(width: MediaQuery.of(context).size.width * .1),
         // The button for the primary speaker
         IconButton.filled(
           icon: Icon(Icons.mic),
@@ -52,7 +53,7 @@ class MicrophoneRow extends StatelessWidget {
           ),
         ),
 
-        SizedBox(width: MediaQuery.of(context).size.width * .2),
+        SizedBox(width: MediaQuery.of(context).size.width * .1),
       ],
     );
   }

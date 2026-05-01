@@ -17,6 +17,6 @@
 
 ## TO Run the camera with fastapi
 1. go to your directory for example: cd imageprocessing
-2. run this command in terminal uvicorn "filename":app --host 0.0.0.0 --port 8000 --reload
-3. reple "filename with your file's name for example filename is ocr.py then you put ocr:app
-4. then go to your browser http://localhost:8000/
+2. run this command in terminal uvicorn "filename":app --host 0.0.0.0 --port 8001 --reload
+3. replacee "filename with your file's name for example filename is ocr.py then you put ocr:app
+4. then go to your browser http://localhost:8001/
