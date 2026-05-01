@@ -22,7 +22,7 @@
     // POST-CREATION COMMAND
     // Runs automatically AFTER container is created
     // This installs Python packages so they're ready when you start coding
-    "postCreateCommand": "pip install --upgrade pip && pip install opencv-python numpy pytesseract fastapi uvicorn",
+    "postCreateCommand": "python3 -m pip install --upgrade pip && python3 -m pip install opencv-python numpy pytesseract fastapi uvicorn requests python-multipart",
 
     // VS CODE CUSTOMIZATIONS
     // Settings specific to VS Code inside the container
@@ -50,10 +50,11 @@
     // DOCKER RUN ARGUMENTS
     // These are passed to 'docker run' when starting the container
     "runArgs": [ // Add Any Access Here ↓↓↓
+         "--network=host", 
         "--device=/dev/video0:/dev/video0", // Maps host camera to container (for OpenCV)
         "--group-add=video",                 // Adds container user to 'video' group for camera access
         "--security-opt=seccomp=unconfined"  // If you encounter permission issues
     ],
 
-    "forwardPorts": [8000]
+    "forwardPorts": [8001] // Forwards container port 8001 to host for FastAPI access
 }
