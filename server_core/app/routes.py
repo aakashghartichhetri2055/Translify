@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import jwt
 import httpx
 
 from app.auth_service import AuthService
-from app.config import SECRET_KEY, ALGORITHM
+from app.config import SECRET_KEY, ALGORITHM, IMAGE_TO_TEXT_SERVICE
 from app.database import get_db
 from app.schemas import (
     SignUpRequest,
@@ -25,7 +25,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # IMPORTANT:
 # Your OCR teammate's FastAPI app must run on port 8001, not 8000
-OCR_SERVICE_URL = "http://127.0.0.1:8001"
 
 
 def get_current_user(
@@ -132,18 +131,29 @@ async def translate(
 async def translate_image_to_text(
     source_language: str = Form(...),
     target_language: str = Form(...),
+    image: UploadFile = File(...),
     store_history: bool = Form(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Real OCR integration with current ocr.py service.
+    Real OCR integration with Image to Text service
     It triggers the OCR service's /capture endpoint,
     receives extracted text, and translates it.
+
+    if not file.filename.lower().endswith((".jpg", ".jpeg")):
+        return {"error": "Only .jpg or jpeg files are allowed"}
+
     """
     try:
+        # Make the request to the image to text service to get extracted text
         async with httpx.AsyncClient(timeout=30.0) as client:
-            capture_response = await client.post(f"{OCR_SERVICE_URL}/capture")
+            contents = await image.read()
+
+            capture_request_body = {
+                "image": (image.filename, contents, image.content_type)
+            }
+            capture_response = await client.post(f"{IMAGE_TO_TEXT_SERVICE}/capture", files = capture_request_body)
 
         if capture_response.status_code != 200:
             raise HTTPException(
@@ -151,26 +161,30 @@ async def translate_image_to_text(
                 detail=f"OCR service error: {capture_response.text}"
             )
 
-        ocr_data = capture_response.json()
-        extracted_text = ocr_data.get("text", "").strip()
+        capture_data = capture_response.json()
+        extracted_text = capture_data["contents"]
 
         if not extracted_text:
             raise HTTPException(
                 status_code=400,
                 detail="OCR service returned no text."
             )
+        
+        # Translate each of the extracted text 
+        for item in extracted_text:
+            translation = await translation_service.translate_text(
+                  text=item["text"],
+                  source_language=source_language,
+                  target_language=target_language,
+            )
 
-        translated_text = await translation_service.translate_text(
-            text=extracted_text,
-            source_language=source_language,
-            target_language=target_language,
-        )
+            item["translation"] = translation
 
         if store_history:
             history = TranslationHistory(
                 user_id=current_user.id,
                 original_text=extracted_text,
-                translated_text=translated_text,
+                translated_text="test",
                 source_language=source_language,
                 target_language=target_language,
                 mode="image",
@@ -179,14 +193,7 @@ async def translate_image_to_text(
             db.add(history)
             db.commit()
 
-        return {
-            "original_text": extracted_text,
-            "translated_text": translated_text,
-            "source_language": source_language,
-            "target_language": target_language,
-            "mode": "image",
-            "ocr_source": "camera_capture"
-        }
+        return extracted_text
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
