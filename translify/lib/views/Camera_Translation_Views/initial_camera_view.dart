@@ -209,27 +209,6 @@ class _InitialCameraTranslationViewState
                         height: MediaQuery.of(context).size.height * .05,
                       ),
 
-                      // The button to select the target language
-                      LanguageSelector(
-                        updateLanguageChoice: (langauge) => {
-                          updateTargetLanguage(langauge),
-                        },
-                        buttonText: targetLanguageButtonMessage,
-                        buttonBackgroundColor:
-                            TranslifyColors.cameraTranslationAccentColor,
-                        buttonTextColor: TranslifyColors.darkButtonText,
-                        menuItemBackgroundColor:
-                            TranslifyColors.nonAdminButtonColor,
-                        menuItemTextColor:
-                            TranslifyColors.cameraTranslationAccentColor,
-                        currentLanguage: targetLanguage,
-                        disabledColor: TranslifyColors.disabledOptionColor,
-                      ),
-
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * .025,
-                      ),
-
                       // The button to select the source language
                       LanguageSelector(
                         updateLanguageChoice: (langauge) => {
@@ -244,6 +223,27 @@ class _InitialCameraTranslationViewState
                         menuItemTextColor:
                             TranslifyColors.cameraTranslationAccentColor,
                         currentLanguage: sourceLanguage,
+                        disabledColor: TranslifyColors.disabledOptionColor,
+                      ),
+
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * .025,
+                      ),
+
+                      // The button to select the target language
+                      LanguageSelector(
+                        updateLanguageChoice: (langauge) => {
+                          updateTargetLanguage(langauge),
+                        },
+                        buttonText: targetLanguageButtonMessage,
+                        buttonBackgroundColor:
+                            TranslifyColors.cameraTranslationAccentColor,
+                        buttonTextColor: TranslifyColors.darkButtonText,
+                        menuItemBackgroundColor:
+                            TranslifyColors.nonAdminButtonColor,
+                        menuItemTextColor:
+                            TranslifyColors.cameraTranslationAccentColor,
+                        currentLanguage: targetLanguage,
                         disabledColor: TranslifyColors.disabledOptionColor,
                       ),
 

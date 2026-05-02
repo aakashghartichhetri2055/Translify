@@ -4,6 +4,8 @@ import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/language_selector.dart';
 import 'dart:io';
+import 'package:translify/services/image_translate_service.dart';
+import "package:translify/models/image_translation_response_model.dart";
 
 class AfterPictureTakenView extends StatefulWidget {
   final String imagePath;
@@ -82,7 +84,14 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
   }
 
   void translateButtonPressed() async {
-    // Here we have the logic to translate things
+    List<ImageTranslationResponseModel> response =
+        await imageTranslationService(
+          widget.imagePath,
+          sourceLanguage,
+          targetLanguage,
+        );
+
+    print(response.length);
   }
 
   @override
@@ -122,22 +131,6 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
 
           SizedBox(height: MediaQuery.of(context).size.height * .05),
 
-          // The button to select the target language
-          LanguageSelector(
-            updateLanguageChoice: (langauge) => {
-              updateTargetLanguage(langauge),
-            },
-            buttonText: targetLanguageButtonMessage,
-            buttonBackgroundColor: TranslifyColors.cameraTranslationAccentColor,
-            buttonTextColor: TranslifyColors.darkButtonText,
-            menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
-            menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
-            currentLanguage: targetLanguage,
-            disabledColor: TranslifyColors.disabledOptionColor,
-          ),
-
-          SizedBox(height: MediaQuery.of(context).size.height * .025),
-
           // The button to select the source language
           LanguageSelector(
             updateLanguageChoice: (langauge) => {
@@ -149,6 +142,22 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
             menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
             menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
             currentLanguage: sourceLanguage,
+            disabledColor: TranslifyColors.disabledOptionColor,
+          ),
+
+          SizedBox(height: MediaQuery.of(context).size.height * .025),
+
+          // The button to select the target language
+          LanguageSelector(
+            updateLanguageChoice: (langauge) => {
+              updateTargetLanguage(langauge),
+            },
+            buttonText: targetLanguageButtonMessage,
+            buttonBackgroundColor: TranslifyColors.cameraTranslationAccentColor,
+            buttonTextColor: TranslifyColors.darkButtonText,
+            menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
+            menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
+            currentLanguage: targetLanguage,
             disabledColor: TranslifyColors.disabledOptionColor,
           ),
 

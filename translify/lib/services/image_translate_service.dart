@@ -2,20 +2,21 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import "endpoints.dart";
 import "get_token.dart";
+import "package:translify/models/image_translation_response_model.dart";
 
-Future<(String, String)> speechTranslateService(
+Future<List<ImageTranslationResponseModel>> imageTranslationService(
   String filepath,
   String originalLang,
   String targetLang,
 ) async {
   String accessToken = await getToken();
 
-  var request = http.MultipartRequest("POST", Endpoints.speechTranslate);
+  var request = http.MultipartRequest("POST", Endpoints.imageTranslate);
   request.files.add(
     await http.MultipartFile.fromPath(
-      "recording",
+      "image",
       filepath,
-      contentType: http.MediaType("audio", "wav"),
+      contentType: http.MediaType("image", "jpeg"),
     ),
   );
 
@@ -31,9 +32,15 @@ Future<(String, String)> speechTranslateService(
   var responseBody = await response.stream.bytesToString();
 
   if (response.statusCode == 200) {
-    var data = jsonDecode(responseBody);
+    List<dynamic> data = jsonDecode(responseBody);
 
-    return (data["original_text"] as String, data["translated_text"] as String);
+    final result = data
+        .map<ImageTranslationResponseModel>(
+          (item) => ImageTranslationResponseModel.fromJson(item),
+        )
+        .toList();
+
+    return result;
   } else {
     throw Exception("Error ${response.statusCode}: $responseBody");
   }
