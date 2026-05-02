@@ -398,11 +398,3 @@ class _ConversationTranslationViewState
     );
   }
 }
-
-/**
- * 
- * To Do 
- * 1. Set up the route for the backend server to receive the audio file
- * 2. Set up the speech processing
- * 4. Test
- */
