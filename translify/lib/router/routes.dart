@@ -8,4 +8,5 @@ class AppRoutes {
   static const cameraPermission = "/cameraPermission";
   static const initialCamera = "/camera";
   static const afterCamera = "/picture/:sourceLang/:targetLang";
+  static const cameraTranslationResult = "/cameraTranslationResult";
 }

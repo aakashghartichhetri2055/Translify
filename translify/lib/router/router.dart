@@ -13,6 +13,9 @@ import 'package:translify/views/Camera_Translation_Views/camera_permissions_view
 import 'package:translify/views/Camera_Translation_Views/initial_camera_view.dart';
 import 'package:translify/views/Camera_Translation_Views/after_picture_taken_view.dart';
 
+import 'package:translify/views/Camera_Translation_Views/camera_translation_result.dart';
+import "package:translify/models/image_translation_response_model.dart";
+
 final GoRouter router = GoRouter(
   routes: [
     GoRoute(
@@ -55,6 +58,19 @@ final GoRouter router = GoRouter(
           initialSourceLanguage: source,
           initialTargetLanguage: target,
         );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.cameraTranslationResult,
+      builder: (context, state) {
+        // Get the data from the route state
+        final data = state.extra as Map<String, dynamic>;
+
+        final String path = data["path"] as String;
+        final List<ImageTranslationResponseModel> results =
+            data["results"] as List<ImageTranslationResponseModel>;
+
+        return CameraTranslationResult(imagePath: path, detectedText: results);
       },
     ),
   ],
