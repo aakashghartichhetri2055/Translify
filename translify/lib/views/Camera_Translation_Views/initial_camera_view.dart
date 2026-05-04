@@ -84,7 +84,10 @@ class _InitialCameraTranslationViewState
     if (!contextCheck.mounted) {
       return;
     } else {
-      context.push(
+      // Push the replacement to force the camera to stop being used
+      // If this were a regular push then the camera would still be in use and any privacy indicators (like green dot in upper right) would still be activated
+      // Kinda hacky in my opinion, since it not accounted for, in the next screen the back button will take you back to the homepage, instead of the camera view
+      context.pushReplacement(
         "/picture/$sourceLanguage/$targetLanguage",
         extra: picture.path,
       );
