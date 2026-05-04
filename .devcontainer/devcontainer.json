@@ -22,7 +22,7 @@
     // POST-CREATION COMMAND
     // Runs automatically AFTER container is created
     // This installs Python packages so they're ready when you start coding
-    "postCreateCommand": "python3 -m pip install --upgrade pip && python3 -m pip install opencv-python numpy pytesseract fastapi uvicorn requests python-multipart",
+    "postCreateCommand": "python3 -m pip install --upgrade pip && python3 -m pip install opencv-python numpy pytesseract fastapi uvicorn requests python-multipart torch torchvision transformers",
 
     // VS CODE CUSTOMIZATIONS
     // Settings specific to VS Code inside the container
