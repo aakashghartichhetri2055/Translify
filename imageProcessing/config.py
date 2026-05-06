@@ -35,11 +35,11 @@ DENOISE_H = 10
 # How wide the horizontal dilation kernel is.
 # Wider → more characters get merged into one region per line.
 # Narrower → words stay more separate.
-H_KERNEL_WIDTH = 15
+H_KERNEL_WIDTH = 35
 
 # Contours taller than this fraction of the image height get thrown out.
 # Keeps us from treating a full-image background blob as a text region.
-MAX_LINE_HEIGHT_RATIO = 0.15
+MAX_LINE_HEIGHT_RATIO = 0.20
 
 # Minimum size for a region to be kept — anything smaller is probably noise.
 MIN_REGION_W = 20
@@ -58,8 +58,8 @@ VERTICAL_OVERLAP_THRESH = 0.5
 # RECOGNITION (TrOCR)
 # ---------------------------------------------------------------------------
 
-# Wider beam search = more accurate, but slower. 4 is a good middle ground.
-NUM_BEAMS = 4
+# Wider beam search = more accurate, but slower.
+NUM_BEAMS = 2
 
 # Max tokens to generate per crop. 64 handles most single lines comfortably.
 MAX_NEW_TOKENS = 64
