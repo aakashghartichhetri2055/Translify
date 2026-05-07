@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:translify/colors/colors.dart';
 import "package:translify/models/image_translation_response_model.dart";
+import 'package:translify/widgets/camera_translation_bounding_box.dart';
 
 class CameraTranslationResult extends StatefulWidget {
   final String imagePath;
@@ -66,16 +67,13 @@ class _CameraTranslationResultState extends State<CameraTranslationResult> {
                   ...widget.detectedText.map((
                     ImageTranslationResponseModel boundingBox,
                   ) {
-                    return Positioned(
-                      left: boundingBox.x.toDouble(),
-                      top: boundingBox.y.toDouble(),
-                      child: Text(
-                        boundingBox.translatedText,
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    return CameraTranslationBoundingBox(
+                      x: boundingBox.x.toDouble(),
+                      y: boundingBox.y.toDouble(),
+                      width: boundingBox.width.toDouble(),
+                      height: boundingBox.height.toDouble(),
+                      originalText: boundingBox.originalText,
+                      translatedText: boundingBox.translatedText,
                     );
                   }),
                 ],
