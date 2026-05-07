@@ -1,6 +1,7 @@
 import httpx
 from app.config import LIBRETRANSLATE, SUPPORTED_LANGUAGES
 
+
 class TranslationService:
     def __init__(self):
         self.base_url = LIBRETRANSLATE.rstrip("/")
@@ -22,19 +23,37 @@ class TranslationService:
             return text
 
         payload = {
+<<<<<<< HEAD
             "q": text,
             "source": source_language,
             "target": target_language,
             "format": "text"
+=======
+            "text": text,
+            "sourceLanguage": source_language,
+            "targetLanguage": target_language,
+>>>>>>> 1b3778e (Temporary save before switching branches)
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(f"{self.base_url}/translate", json=payload)
 
-            if response.status_code != 200:
-                raise Exception(
-                    f"LibreTranslate error {response.status_code}: {response.text}"
-                )
+        if response.status_code != 200:
+            raise Exception(
+                f"Translation engine error {response.status_code}: {response.text}"
+            )
 
-            data = response.json()
-            return data["translatedText"]
+        data = response.json()
+
+        translated_text = (
+            data.get("translatedText")
+            or data.get("translated_text")
+            or data.get("translation")
+            or data.get("result")
+            or data.get("text")
+        )
+
+        if not translated_text:
+            raise Exception(f"Unexpected translation response: {data}")
+
+        return translated_text
