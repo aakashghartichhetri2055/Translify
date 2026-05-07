@@ -1,166 +1,407 @@
 # Server Core
-
 The **Server Core** is a high-performance FastAPI service that powers real-time multimodal translation. It acts as the central orchestrator, receiving text from: OCR (image processing), Speech-to-text pipelines, and Direct user input, and translating it with our Translate Engine, then returning results instantly. It also provides, secure JWT-based authentication and optional translation history storage (in PostgreSQL)
 
-## Features
+This section explains the FULL authentication and testing process step-by-step so that team-mate can run and test the complete Translify backend correctly.
+---
 
-- User authentication (JWT-based)
-- Real-time translation (en ↔ es)
-- Integration with OCR service (image → text → translate)
-- Integration with Speech transcription service (speech -> text -> translate)
-- Translation history storage (optional)
-- Async FastAPI backend
-- PostgreSQL integration
-- Modular architecture (ready for full integration)
+# STEP 1 — Start All Services
+IMPORTANT:
+All services MUST run simultaneously.
+Open 4 separate terminals.
+---
 
-## Environment Setup
+## Terminal 1 — Translation Engine
+```bash
+conda activate translify
 
-Create a .env file in the root:
+cd translationEngine
 
-```
-DATABASE_URL=postgresql://acexeon:StrongPass123@localhost:4321/translify
-IMAGE_TO_TEXT_SERVICE=http://127.0.0.1:8001
-SPEECH_TO_TEXT_SERVICE=http://127.0.0.1:8002
-TRANSLATE_SERVICE=http://localhost:9000
-SUPPORTED_LANGUAGES=en,es
-SECRET_KEY=your_super_secret_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+uvicorn main:app --port 9000 --reload
 ```
 
-1. PostgreSQL Setup (Mac - Homebrew)
-   brew install postgresql@18
-   brew services start postgresql@18
+Expected:
 
-2. Create database:
-   psql -h localhost -p 4321 postgres
-   CREATE DATABASE translify;
-   ALTER USER acexeon WITH PASSWORD 'StrongPass123';
+```text
+Uvicorn running on http://127.0.0.1:9000
+```
 
-3. For each of the three modules (imageProcessing, speechProcessing, translationEngine):
-   - Open a new terminal window
-   - Navigate to the respective folder within the Translify project
-   - Create a virtual environment: `python3 -m venv venv`
-   - Activate the virtual environment: `source venv/bin/activate`
-   - Install all requirements: `pip install -r requirements.txt`
-   - For imageProcessing only: Also install Tesseract OCR [using the instructions here for the respective platform](https://tesseract-ocr.github.io/tessdoc/Installation.html) - Make sure to also install the `tesseract-ocr-langcode` package
-   - Run main.py within each folder, and leave the process running
-
-**All three modules (imageProcessing, speechProcessing, translationEngine) must be running BEFORE running the main server below**
-
-4. Run Main Backend Server
-   - Open new terminal window
-   - Create new virtual environment and activate it
-   - Install required packages: `pip install -r requirements.txt`
-   - In terminal, run the server: `uvicorn app.main:app --reload`
-
-5. Backend runs on:
-   http://127.0.0.1:8000
-
-6. API Endpoints
-   Method Endpoint Description
-
-   POST /signup: Create new user
-
-   POST /login: Login and get JWT token
-
-   GET /me Get current user
-
-7. Translation Endpoints Description
-
-   POST /translate Direct text translation
-
-   POST /translate/image-to-text: Receive an image file, extract the text within the image, and return the translated text and bounding boxes
-
-   POST /translate/speech-to-text: Receive an audio file, transcribe the speech to text, and return the translated text
-
-## API Testing (cURL)
-
-1. Signup
+---
+## Terminal 2 — Image Processing
 
 ```bash
-   curl -X POST http://127.0.0.1:8000/signup \
-    -H "Content-Type: application/json" \
-    -d '{
-   "email": "testuser@example.com",
-   "password": "mypassword123"
-   }'
+conda activate translify
+
+cd imageProcessing
+
+python ocr.py
 ```
 
-2. Login
+Expected:
+
+```text
+Uvicorn running on http://127.0.0.1:8001
+```
+
+---
+## Terminal 3 — Speech Processing
+
+macOS users:
 
 ```bash
-   curl -X POST http://127.0.0.1:8000/login \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "username=testuser@example.com&password=mypassword123"
+conda activate translify
+
+cd speechProcessing
+
+export KMP_DUPLICATE_LIB_OK=TRUE
+
+uvicorn main:app --port 8002 --reload
 ```
 
-Copy the token from the response for use in the tests below:
+Expected:
+
+```text
+Model loaded.
+Application startup complete.
+```
+
+---
+## Terminal 4 — Server Core
+
+```bash
+conda activate translify
+
+cd server_core
+
+uvicorn app.main:app --reload
+```
+
+Expected:
+
+```text
+Application startup complete.
+```
+
+Main backend:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+# STEP 2 — Create New User (Signup)
+
+The signup endpoint creates a new authenticated user inside PostgreSQL.
+
+Run:
+
+```bash
+curl -X POST http://127.0.0.1:8000/signup \
+-H "Content-Type: application/json" \
+-d '{
+"email":"test1@example.com",
+"password":"mypassword123"
+}'
+```
+
+Expected response:
+
+```json
 {
-"access_token": "...",
-"token_type": "bearer"
+  "id": 1,
+  "email": "test1@example.com",
+  "is_active": true
 }
-
-3. Test Auth (/me)
-
-```bash
-   curl -X GET http://127.0.0.1:8000/me \
-    -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-4. Text Translation
+IMPORTANT:
+
+- If the user already exists, continue to login.
+- Signup only needs to be done once.
+
+---
+# STEP 3 — Login User
+
+The login endpoint authenticates the user and returns a JWT access token.
+
+Run:
 
 ```bash
-   curl -X POST http://127.0.0.1:8000/translate \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer YOUR_TOKEN" \
-    -d '{
-   "text": "Hola, ¿cómo estás?",
-   "source_language": "es",
-   "target_language": "en",
-   "mode": "text",
-   "store_history": true
-   }'
+curl -X POST http://127.0.0.1:8000/login \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=test1@example.com&password=mypassword123"
 ```
 
-5. Image → Text → Translate
+Expected response:
+
+```json
+{
+  "access_token": "YOUR_ACCESS_TOKEN_HERE",
+  "token_type": "bearer"
+}
+```
+
+---
+# STEP 4 — Save JWT Token
+
+Copy the `access_token` from login response.
+
+Save it as an environment variable:
 
 ```bash
-   curl -X POST "http://localhost:8000/translate/image-to-text" \
-   -H "Authorization: Bearer YOUR_TOKEN" \
-   -F "source_language=en" \
-   -F "target_language=es" \
-   -F "store_history=false" \
-   -F "image=@IMAGE_PATH_HERE"
-
-   # There are sample files to test with in imageProcessing folder
+export TOKEN="PASTE_ACCESS_TOKEN_HERE"
 ```
 
-6. Speech → Text → Translate
+Example:
 
 ```bash
-   curl -X POST "http://localhost:8000/translate/speech-to-text" \
-   -H "Authorization: Bearer YOUR_TOKEN" \
-   -F "source_language=en" \
-   -F "target_language=es" \
-   -F "store_history=false" \
-   -F "recording=@AUDIO_PATH_HERE"
-
-   # There are sample files to test with in speechProcessing folder
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## API Documentation
+IMPORTANT:
 
-Swagger UI: http://127.0.0.1:8000/docs
+All protected routes require:
 
-## Future Improvements
+```http
+Authorization: Bearer <TOKEN>
+```
 
-- Support more languages
-- Dockerize all services
-- Add Redis caching
-- Improve translation quality (possible change to TranslateGemma model via Ollama)
-- Real-time streaming translation
+---
 
-# Authors
+# STEP 5 — Verify Authentication
+Run:
 
-Translify Capstone Project - Group 8
+```bash
+curl -X GET http://127.0.0.1:8000/me \
+-H "Authorization: Bearer $TOKEN"
+```
+
+Expected response:
+
+```json
+{
+  "id": 1,
+  "email": "test1@example.com",
+  "is_active": true
+}
+```
+
+This confirms:
+
+- JWT authentication works
+- Token is valid
+- PostgreSQL user retrieval works
+
+---
+
+# STEP 6 — Test Text Translation
+```bash
+curl -X POST http://127.0.0.1:8000/translate \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $TOKEN" \
+-d '{
+"text":"Hola amigo",
+"source_language":"es",
+"target_language":"en",
+"mode":"text",
+"store_history":true
+}'
+```
+
+Expected response:
+
+```json
+{
+  "original_text": "Hola amigo",
+  "translated_text": "Hello friend",
+  "source_language": "es",
+  "target_language": "en",
+  "mode": "text"
+}
+```
+
+---
+# STEP 7 — Test OCR Image Translation
+
+Run from inside:
+
+```text
+server_core/
+```
+
+Command:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/translate/image-to-text" \
+-H "Authorization: Bearer $TOKEN" \
+-F "image=@../imageProcessing/Test1.jpg" \
+-F "source_language=en" \
+-F "target_language=es" \
+-F "store_history=true"
+```
+
+Expected response:
+
+```json
+{
+  "mode": "image",
+  "source_language": "en",
+  "target_language": "es",
+  "original_text": "...",
+  "translated_text": "...",
+  "blocks": []
+}
+```
+
+This confirms:
+
+- OCR works
+- Translation works
+- Service communication works
+- Database storage works
+
+---
+# STEP 8 — Test Speech Translation
+
+Run from inside:
+
+```text
+speechProcessing/
+```
+
+Command:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/translate/speech-to-text" \
+-H "Authorization: Bearer $TOKEN" \
+-F "recording=@Test1.wav" \
+-F "source_language=en" \
+-F "target_language=es" \
+-F "store_history=true"
+```
+
+Expected response:
+
+```json
+{
+  "mode": "speech",
+  "source_language": "en",
+  "target_language": "es",
+  "original_text": "...",
+  "translated_text": "..."
+}
+```
+
+This confirms:
+
+- Speech-to-text works
+- Translation works
+- Microservices communicate correctly
+- Translation history saves correctly
+
+---
+# FULL VERIFIED SUCCESS CHECKLIST
+
+The backend is fully working when ALL endpoints succeed:
+
+```text
+/signup
+/login
+/me
+/translate
+/translate/image-to-text
+/translate/speech-to-text
+```
+
+---
+# Common Errors + Fixes
+
+---
+## Error: Invalid authentication credentials
+
+Cause:
+
+- Expired token
+- Wrong token
+
+Fix:
+
+Login again:
+
+```bash
+curl -X POST http://127.0.0.1:8000/login \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=test1@example.com&password=mypassword123"
+```
+
+Save new token:
+
+```bash
+export TOKEN="NEW_ACCESS_TOKEN"
+```
+
+---
+## Error: curl (26) Failed to open/read local data
+
+Cause:
+
+Wrong image/audio path.
+
+Fix:
+
+```bash
+ls ../imageProcessing
+
+ls ../speechProcessing
+```
+
+Use exact file names.
+
+---
+## Error: 404 Not Found
+
+Wrong endpoint.
+
+Correct endpoints:
+
+```text
+/translate
+/translate/image-to-text
+/translate/speech-to-text
+```
+
+---
+## Error: 422 Unprocessable Entity
+
+Wrong field names.
+
+Correct fields:
+
+```text
+Image endpoint:
+image
+
+Speech endpoint:
+recording
+```
+
+---
+## Error: Speech endpoint returns 422
+
+Make sure this fix exists inside:
+
+```text
+server_core/app/routes.py
+```
+
+```python
+data={
+    "language": source_language
+}
+```
+Without this fix, speech processing fails.

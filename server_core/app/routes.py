@@ -3,9 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import jwt
 import httpx
+import json
 
 from app.auth_service import AuthService
-from app.config import SECRET_KEY, ALGORITHM, IMAGE_TO_TEXT_SERVICE, SPEECH_TO_TEXT_SERVICE
+from app.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    IMAGE_TO_TEXT_SERVICE,
+    SPEECH_TO_TEXT_SERVICE,
+)
 from app.database import get_db
 from app.schemas import (
     SignUpRequest,
@@ -23,9 +29,6 @@ translation_service = TranslationService()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-# IMPORTANT:
-# Your OCR teammate's FastAPI app must run on port 8001, not 8000
-
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -37,8 +40,6 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    email = None
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
@@ -49,17 +50,44 @@ def get_current_user(
         raise credentials_exception
 
     user = db.query(User).filter(User.email == email).first()
+
     if user is None:
         raise credentials_exception
 
     return user
 
 
+def save_history(
+    db: Session,
+    user_id: int,
+    original_text: str,
+    translated_text: str,
+    source_language: str,
+    target_language: str,
+    mode: str,
+    store_history: bool,
+):
+    if not store_history:
+        return
+
+    history = TranslationHistory(
+        user_id=user_id,
+        original_text=original_text,
+        translated_text=translated_text,
+        source_language=source_language,
+        target_language=target_language,
+        mode=mode,
+        store_history=store_history,
+    )
+
+    db.add(history)
+    db.commit()
+
+
 @router.post("/signup", response_model=UserResponse)
 def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     try:
-        user = auth_service.create_user(db, request.email, request.password)
-        return user
+        return auth_service.create_user(db, request.email, request.password)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -69,7 +97,11 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    user = auth_service.authenticate_user(db, form_data.username, form_data.password)
+    user = auth_service.authenticate_user(
+        db,
+        form_data.username,
+        form_data.password,
+    )
 
     if not user:
         raise HTTPException(
@@ -79,6 +111,7 @@ def login(
         )
 
     access_token = auth_service.create_access_token(user.email)
+
     return TokenResponse(access_token=access_token)
 
 
@@ -100,29 +133,31 @@ async def translate(
             target_language=request.target_language,
         )
 
-        if request.store_history:
-            history = TranslationHistory(
-                user_id=current_user.id,
-                original_text=request.text,
-                translated_text=translated_text,
-                source_language=request.source_language,
-                target_language=request.target_language,
-                mode=request.mode,
-                store_history=request.store_history,
-            )
-            db.add(history)
-            db.commit()
+        save_history(
+            db=db,
+            user_id=current_user.id,
+            original_text=request.text,
+            translated_text=translated_text,
+            source_language=request.source_language,
+            target_language=request.target_language,
+            mode=request.mode or "text",
+            store_history=bool(request.store_history),
+        )
 
         return TranslationResponse(
             original_text=request.text,
             translated_text=translated_text,
             source_language=request.source_language,
             target_language=request.target_language,
-            mode=request.mode,
+            mode=request.mode or "text",
         )
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Translation service unavailable: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -136,71 +171,117 @@ async def translate_image_to_text(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Real OCR integration with Image to Text service
-    It triggers the OCR service's /capture endpoint,
-    receives extracted text, and translates it.
-    """
-    if not image.filename.lower().endswith((".jpg", ".jpeg")):
-        return {"error": "Only .jpg or jpeg files are allowed"}
+    if not image.filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        raise HTTPException(
+            status_code=400,
+            detail="Only .jpg, .jpeg, or .png files are allowed.",
+        )
 
     try:
-        # Make the request to the image to text service to get extracted text
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            contents = await image.read()
+        image_bytes = await image.read()
 
-            capture_request_body = {
-                "image": (image.filename, contents, image.content_type)
-            }
-            capture_response = await client.post(f"{IMAGE_TO_TEXT_SERVICE}/capture", files = capture_request_body)
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Empty image file received.")
 
-        if capture_response.status_code != 200:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            ocr_response = await client.post(
+                f"{IMAGE_TO_TEXT_SERVICE.rstrip('/')}/capture",
+                files={
+                    "image": (
+                        image.filename,
+                        image_bytes,
+                        image.content_type or "image/jpeg",
+                    )
+                },
+            )
+
+        if ocr_response.status_code != 200:
             raise HTTPException(
                 status_code=500,
-                detail=f"OCR service error: {capture_response.text}"
+                detail=f"OCR service error: {ocr_response.text}",
             )
 
-        capture_data = capture_response.json()
-        extracted_text = capture_data["contents"]
+        ocr_data = ocr_response.json()
+        contents = ocr_data.get("contents", [])
+        full_text = ocr_data.get("text", "").strip()
 
-        if not extracted_text:
-            raise HTTPException(
-                status_code=400,
-                detail="OCR service returned no text."
+        if not contents and not full_text:
+            raise HTTPException(status_code=400, detail="OCR service returned no text.")
+
+        translated_blocks = []
+
+        if contents:
+            for item in contents:
+                original_block_text = item.get("text", "").strip()
+
+                if not original_block_text:
+                    continue
+
+                translated_block_text = await translation_service.translate_text(
+                    text=original_block_text,
+                    source_language=source_language,
+                    target_language=target_language,
+                )
+
+                translated_blocks.append(
+                    {
+                        "original_text": original_block_text,
+                        "translated_text": translated_block_text,
+                        "bbox": item.get("bbox"),
+                    }
+                )
+
+            original_for_history = " ".join(
+                block["original_text"] for block in translated_blocks
             )
-        
-        # Translate each of the extracted text 
-        for item in extracted_text:
-            translation_response = await translation_service.translate_text(
-                  text=item["text"],
-                  source_language=source_language,
-                  target_language=target_language,
+            translated_for_history = " ".join(
+                block["translated_text"] for block in translated_blocks
             )
 
-            item["translation"] = translation_response
-
-        if store_history:
-            history = TranslationHistory(
-                user_id=current_user.id,
-                original_text=extracted_text,
-                translated_text="test",
+        else:
+            translated_text = await translation_service.translate_text(
+                text=full_text,
                 source_language=source_language,
                 target_language=target_language,
-                mode="image",
-                store_history=store_history,
             )
-            db.add(history)
-            db.commit()
 
-        return extracted_text
+            translated_blocks.append(
+                {
+                    "original_text": full_text,
+                    "translated_text": translated_text,
+                    "bbox": None,
+                }
+            )
+
+            original_for_history = full_text
+            translated_for_history = translated_text
+
+        save_history(
+            db=db,
+            user_id=current_user.id,
+            original_text=original_for_history,
+            translated_text=translated_for_history,
+            source_language=source_language,
+            target_language=target_language,
+            mode="image",
+            store_history=store_history,
+        )
+
+        return {
+            "mode": "image",
+            "source_language": source_language,
+            "target_language": target_language,
+            "original_text": original_for_history,
+            "translated_text": translated_for_history,
+            "blocks": translated_blocks,
+        }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Could not reach OCR service: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Could not reach OCR service: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -214,60 +295,80 @@ async def translate_speech_to_text(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Speech to text transcription and translatio
-    """
+    if not recording.filename.lower().endswith((".wav", ".mp3", ".m4a")):
+        raise HTTPException(
+            status_code=400,
+            detail="Only .wav, .mp3, or .m4a audio files are allowed.",
+        )
+
     try:
-        if not recording.filename.lower().endswith((".wav")):
-            return {"error": "Only .wav files are allowed"}
-        
-        # Transcribe the speech into text
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            contents = await recording.read()
+        audio_bytes = await recording.read()
 
-            transcription_request_body = {
-                "file": (recording.filename, contents, recording.content_type)
-            }
+        if not audio_bytes:
+            raise HTTPException(status_code=400, detail="Empty audio file received.")
 
-            transcription_response = await client.post(
-                f"{SPEECH_TO_TEXT_SERVICE}/speech/transcribe", 
-                files = transcription_request_body, 
-                data = {
-                    "language": source_language
-                }
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            speech_response = await client.post(
+                f"{SPEECH_TO_TEXT_SERVICE.rstrip('/')}/speech/transcribe",
+                files={
+                    "file": (
+                        recording.filename,
+                        audio_bytes,
+                        recording.content_type or "audio/wav",
+                        )
+                        },
+                        data={
+                            "language": source_language
+                            },
+                            )
+
+        if speech_response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Speech service error: {speech_response.text}",
             )
 
-            transcription_data = transcription_response.json()
-            transcription = transcription_data["text"]
+        speech_data = speech_response.json()
+        transcription = speech_data.get("text", "").strip()
+        detected_language = speech_data.get("language")
 
-        # Translate the text
-        translation_response = await translation_service.translate_text(
+        if not transcription:
+            raise HTTPException(
+                status_code=400,
+                detail="Speech service returned no transcription.",
+            )
+
+        translated_text = await translation_service.translate_text(
             text=transcription,
             source_language=source_language,
             target_language=target_language,
         )
 
-        translation = translation_response
-
-        if store_history:
-            history = TranslationHistory(
-                user_id=current_user.id,
-                original_text=transcription,
-                translated_text=translation,
-                source_language=source_language,
-                target_language=target_language,
-                mode="speech",
-                store_history=store_history,
-            )
-            db.add(history)
-            db.commit()
+        save_history(
+            db=db,
+            user_id=current_user.id,
+            original_text=transcription,
+            translated_text=translated_text,
+            source_language=source_language,
+            target_language=target_language,
+            mode="speech",
+            store_history=store_history,
+        )
 
         return {
+            "mode": "speech",
+            "source_language": source_language,
+            "target_language": target_language,
+            "detected_language": detected_language,
             "original_text": transcription,
-            "translated_text": translation,
+            "translated_text": translated_text,
         }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Could not reach speech service: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
