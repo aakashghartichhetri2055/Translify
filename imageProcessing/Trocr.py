@@ -11,10 +11,9 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 import config
 
-# The annotated image gets overwritten here after every request
 CAPTURE_PATH = "captured_frame.jpg"
 
-# Load the model once at startup so every request is fast
+# Load once at startup
 print(f"[init] Loading TrOCR model: {config.MODEL_ID}")
 device    = "cuda" if torch.cuda.is_available() else "cpu"
 processor = TrOCRProcessor.from_pretrained(config.MODEL_ID)
@@ -25,23 +24,57 @@ print(f"[init] Model loaded on {device}")
 app = FastAPI()
 
 
-def preprocess_for_ocr(gray: np.ndarray) -> np.ndarray:
-    """
-    Cleans up the image before we try to read text from it.
+def select_best_channel(bgr: np.ndarray) -> np.ndarray:
+    """Pick the B/G/R channel (or its inverse) with the cleanest Otsu split,
+    then make sure background is the bright side."""
+    best_gray  = None
+    best_score = -1
 
-    We use gamma correction to fix over/under-exposed images — it's gentler
-    than CLAHE and doesn't amplify noise. If the image is still very dark after
-    that, we invert it (handles white text on dark backgrounds). Finally, we
-    run a quick denoise pass to get rid of speckles.
-    """
-    avg_brightness = np.mean(gray)
-    print(f"[preprocess] avg brightness: {avg_brightness:.1f}")
+    for ch in cv2.split(bgr):
+        for img in [ch, cv2.bitwise_not(ch)]:
+            _, binary = cv2.threshold(
+                img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            )
+            fg = img[binary == 255]
+            bg = img[binary == 0]
 
-    if avg_brightness < config.GAMMA_VERY_DARK:
+            if len(fg) == 0 or len(bg) == 0:
+                continue
+
+            score = abs(float(np.mean(fg)) - float(np.mean(bg)))
+            print(f"[channel] score={score:.1f}")
+
+            if score > best_score:
+                best_score = score
+                best_gray  = img.copy()
+
+    print(f"[channel] best contrast score: {best_score:.1f}")
+
+    # Background should be the bright side; downstream BINARY_INV depends on it
+    _, otsu = cv2.threshold(best_gray, 0, 255,
+                            cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    bright_fraction = (otsu == 255).sum() / otsu.size
+    if bright_fraction < 0.5:
+        print(f"[channel] inverting polarity (bright fraction {bright_fraction:.2f})")
+        best_gray = cv2.bitwise_not(best_gray)
+
+    return best_gray
+
+
+def preprocess_for_ocr(gray: np.ndarray, bgr: np.ndarray = None) -> np.ndarray:
+    """Best-channel swap (if bgr given) -> gamma -> optional invert -> denoise."""
+    polarity_already_normalized = bgr is not None
+    if bgr is not None:
+        gray = select_best_channel(bgr)
+
+    avg = np.mean(gray)
+    print(f"[preprocess] avg brightness: {avg:.1f}")
+
+    if avg < config.GAMMA_VERY_DARK:
         gamma = 0.5
-    elif avg_brightness < config.GAMMA_DARK:
+    elif avg < config.GAMMA_DARK:
         gamma = 0.75
-    elif avg_brightness > config.GAMMA_BRIGHT:
+    elif avg > config.GAMMA_BRIGHT:
         gamma = 1.5
     else:
         gamma = 1.0
@@ -53,55 +86,48 @@ def preprocess_for_ocr(gray: np.ndarray) -> np.ndarray:
         ], dtype=np.uint8)
         gray = cv2.LUT(gray, table)
 
-    if np.mean(gray) < config.INVERT_THRESHOLD:
-        print("[preprocess] inverting for light text on dark background")
-        gray = cv2.bitwise_not(gray)
+    # Skip when bgr was given; select_best_channel already handled polarity
+    if not polarity_already_normalized:
+        if np.mean(gray) < config.INVERT_THRESHOLD:
+            print("[preprocess] inverting (light text on dark background)")
+            gray = cv2.bitwise_not(gray)
 
     gray = cv2.fastNlMeansDenoising(gray, h=config.DENOISE_H)
-
     return gray
 
 
 def detect_text_regions(gray: np.ndarray):
-    """
-    Finds where the text is on the page and returns bounding boxes for each chunk.
-
-    Steps:
-      1. Threshold the image to get a clean black-and-white mask of the ink
-      2. Dilate horizontally to glue nearby characters into word-sized blobs
-      3. Find contours — each one becomes a candidate text region
-
-    We skip vertical dilation on purpose: it tends to merge everything into one
-    giant blob on dark-background images. Line grouping happens separately in
-    merge_regions_into_lines().
-
-    Returns a list of (x, y, w, h) tuples in the original image's coordinate space.
-    """
-    _, binary = cv2.threshold(
-        gray, 0, 255,
-        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    """Adaptive threshold + horizontal dilate -> contours -> filter."""
+    binary = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        blockSize=config.ADAPTIVE_BLOCK_SIZE,
+        C=config.ADAPTIVE_C
     )
 
     h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (config.H_KERNEL_WIDTH, 1))
     dilated  = cv2.dilate(binary, h_kernel, iterations=1)
 
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # RETR_LIST so an outer contour can't hide nested text
+    contours, _ = cv2.findContours(dilated, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     regions = []
     img_h, img_w = gray.shape
-    max_h   = img_h * config.MAX_LINE_HEIGHT_RATIO
+    max_h = img_h * config.MAX_LINE_HEIGHT_RATIO
 
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # Drop tiny blobs — they're almost always noise
         if w < config.MIN_REGION_W or h < config.MIN_REGION_H:
+            continue  # noise
+
+        if h > max_h:
+            print(f"[detect] dropping oversized blob {w}x{h}")
             continue
 
-        # Drop blobs that are suspiciously tall — probably a background artifact
-        if h > max_h:
-            print(f"[detect] dropping oversized blob {w}x{h} "
-                  f"(>{config.MAX_LINE_HEIGHT_RATIO*100:.0f}% of image height {img_h})")
+        if w > img_w * 0.95 and h > img_h * 0.95:
+            print(f"[detect] dropping page-spanning blob {w}x{h}")
             continue
 
         regions.append((x, y, w, h))
@@ -111,12 +137,7 @@ def detect_text_regions(gray: np.ndarray):
 
 
 def merge_regions_into_lines(regions):
-    """
-    Groups nearby regions into single per-line bounding boxes.
-
-    Two regions are treated as the same line if they overlap vertically by more
-    than config.VERTICAL_OVERLAP_THRESH (as a fraction of the shorter region's height).
-    """
+    """Merge boxes onto the same line by vertical overlap."""
     if not regions:
         return []
 
@@ -138,13 +159,12 @@ def merge_regions_into_lines(regions):
         for j in range(i + 1, len(regions)):
             if used[j]:
                 continue
-            if any(vertical_overlap_ratio(r, regions[j]) >= config.VERTICAL_OVERLAP_THRESH
-                   for r in group):
+            if any(vertical_overlap_ratio(g, regions[j]) >= config.VERTICAL_OVERLAP_THRESH
+                   for g in group):
                 group.append(regions[j])
                 used[j] = True
         lines.append(group)
 
-    # Combine each group into one big bounding box
     merged = []
     for group in lines:
         x1 = min(r[0] for r in group)
@@ -158,19 +178,13 @@ def merge_regions_into_lines(regions):
 
 
 def recognize_crop(crop_bgr: np.ndarray) -> str:
-    """
-    Runs TrOCR on a single cropped region and returns the text it found.
-
-    Skips crops that are too small (likely noise) or whose confidence score
-    falls below the threshold (likely gibberish).
-    """
+    """Run TrOCR on one crop. Skips tiny or low-confidence results."""
     h, w = crop_bgr.shape[:2]
     if w < config.MIN_CROP_PX or h < config.MIN_CROP_PX:
-        print(f"[recognize] skipping crop {w}x{h} — too small")
+        print(f"[recognize] skipping crop {w}x{h} (too small)")
         return ""
 
     pil_img = Image.fromarray(cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB))
-
     pixel_values = processor(images=pil_img, return_tensors="pt").pixel_values.to(device)
 
     with torch.no_grad():
@@ -188,24 +202,18 @@ def recognize_crop(crop_bgr: np.ndarray) -> str:
     print(f"[recognize] '{text}'  confidence={confidence:.3f}")
 
     if confidence < config.MIN_CONFIDENCE:
-        print(f"[recognize] rejected — confidence {confidence:.3f} < threshold {config.MIN_CONFIDENCE}")
+        print(f"[recognize] rejected (confidence {confidence:.3f} < {config.MIN_CONFIDENCE})")
         return ""
 
     return text
 
 
 def run_ocr(jpeg_bytes: bytes):
-    """
-    The main pipeline. Takes raw JPEG bytes and returns all the text we found
-    along with bounding boxes for each line.
-
-    Also saves an annotated copy of the image to disk so you can visually
-    check what the model detected.
-    """
+    """End-to-end pipeline. Returns (text, contents) and saves an annotated frame."""
     np_arr = np.frombuffer(jpeg_bytes, dtype=np.uint8)
     frame  = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-    # Upscale small images — TrOCR reads them much more reliably at higher res
+    # Upscale small inputs; TrOCR reads them better at higher res
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     orig_h, orig_w = gray.shape
     if orig_w < config.UPSCALE_MIN_WIDTH:
@@ -217,11 +225,11 @@ def run_ocr(jpeg_bytes: bytes):
         gray_upscaled = gray
         frame_scaled  = frame
 
-    gray_upscaled = preprocess_for_ocr(gray_upscaled)
+    gray_upscaled = preprocess_for_ocr(gray_upscaled, bgr=frame_scaled)
 
     regions_scaled = detect_text_regions(gray_upscaled)
     regions_scaled = merge_regions_into_lines(regions_scaled)
-    print(f"[ocr] {len(regions_scaled)} line(s) detected after merging")
+    print(f"[ocr] {len(regions_scaled)} line(s) after merging")
 
     all_lines = []
     contents  = []
@@ -235,13 +243,13 @@ def run_ocr(jpeg_bytes: bytes):
         if not line_text:
             continue
 
-        # Map the upscaled coordinates back to the original image
+        # Map back to original coords
         ox = int(sx / scale)
         oy = int(sy / scale)
         ow = int(sw / scale)
         oh = int(sh / scale)
 
-        # Add a small padding around the box so it doesn't hug the text too tightly
+        # Small padding around the box
         bx  = max(ox - 4, 0)
         by  = max(oy - 4, 0)
         bx2 = min(ox + ow + 4, frame.shape[1])
@@ -253,7 +261,6 @@ def run_ocr(jpeg_bytes: bytes):
             "bbox": {"x": bx, "y": by, "w": bx2 - bx, "h": by2 - by},
         })
 
-        # Draw the box and label on the frame for visual debugging
         cv2.rectangle(frame, (bx, by), (bx2, by2), (0, 255, 0), 2)
         cv2.putText(frame, line_text, (bx, max(by - 6, 12)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
@@ -261,7 +268,7 @@ def run_ocr(jpeg_bytes: bytes):
     text = "\n".join(all_lines)
 
     cv2.imwrite(CAPTURE_PATH, frame)
-    print(f"[snapshot] annotated frame saved → {os.path.abspath(CAPTURE_PATH)}")
+    print(f"[snapshot] annotated frame saved -> {os.path.abspath(CAPTURE_PATH)}")
 
     print("\n" + "=" * 50)
     print("[OCR] Detected text:")
@@ -283,10 +290,7 @@ def run_ocr(jpeg_bytes: bytes):
 
 @app.post("/capture")
 async def capture(image: UploadFile = File(...)):
-    """
-    Accepts a JPEG, runs OCR on it, and returns the detected text with bounding boxes.
-    The annotated image is saved to disk — view it at GET /captured_image.
-    """
+    """OCR a JPEG. Annotated image available at GET /captured_image."""
     jpeg_bytes = await image.read()
     if not jpeg_bytes:
         raise HTTPException(status_code=400, detail="No image received")
@@ -304,7 +308,7 @@ async def capture(image: UploadFile = File(...)):
 
 @app.get("/captured_image")
 def captured_image():
-    """Returns the last annotated snapshot. Open in your browser after a /capture call."""
+    """Last annotated snapshot."""
     if not os.path.exists(CAPTURE_PATH):
         raise HTTPException(status_code=404, detail="No captured image yet")
     return FileResponse(CAPTURE_PATH, media_type="image/jpeg")
