@@ -20,6 +20,7 @@ RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy and run server
 COPY Trocr.py .
+COPY config.py .
 EXPOSE 8080
 CMD ["python3", "Trocr.py"]
 
