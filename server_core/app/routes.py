@@ -3,12 +3,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import jwt
 import httpx
-import json
 
 from app.auth_service import AuthService
 from app.config import (
     SECRET_KEY,
     ALGORITHM,
+    TRANSLATE_SERVICE,
     IMAGE_TO_TEXT_SERVICE,
     SPEECH_TO_TEXT_SERVICE,
 )
@@ -22,6 +22,7 @@ from app.schemas import (
 )
 from app.translate_service import TranslationService
 from app.models import TranslationHistory, User
+from app.logger import logger
 
 router = APIRouter()
 auth_service = AuthService()
@@ -84,6 +85,39 @@ def save_history(
     db.commit()
 
 
+async def check_service_health(name: str, url: str):
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{url.rstrip('/')}/health")
+
+        return {
+            "service": name,
+            "url": url,
+            "status": "healthy" if response.status_code == 200 else "unhealthy",
+            "status_code": response.status_code,
+        }
+
+    except Exception as e:
+        return {
+            "service": name,
+            "url": url,
+            "status": "unreachable",
+            "error": str(e),
+        }
+
+
+@router.get("/services/health")
+async def services_health():
+    return {
+        "server_core": "healthy",
+        "services": [
+            await check_service_health("translationEngine", TRANSLATE_SERVICE),
+            await check_service_health("imageProcessing", IMAGE_TO_TEXT_SERVICE),
+            await check_service_health("speechProcessing", SPEECH_TO_TEXT_SERVICE),
+        ],
+    }
+
+
 @router.post("/signup", response_model=UserResponse)
 def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     try:
@@ -120,6 +154,36 @@ def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.get("/history")
+def get_translation_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    history = (
+        db.query(TranslationHistory)
+        .filter(TranslationHistory.user_id == current_user.id)
+        .order_by(TranslationHistory.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    return {
+        "count": len(history),
+        "items": [
+            {
+                "id": item.id,
+                "original_text": item.original_text,
+                "translated_text": item.translated_text,
+                "source_language": item.source_language,
+                "target_language": item.target_language,
+                "mode": item.mode,
+                "created_at": item.created_at,
+            }
+            for item in history
+        ],
+    }
+
+
 @router.post("/translate", response_model=TranslationResponse)
 async def translate(
     request: TranslationRequest,
@@ -127,6 +191,8 @@ async def translate(
     current_user: User = Depends(get_current_user),
 ):
     try:
+        logger.info("Direct text translation requested")
+
         translated_text = await translation_service.translate_text(
             text=request.text,
             source_language=request.source_language,
@@ -141,7 +207,7 @@ async def translate(
             source_language=request.source_language,
             target_language=request.target_language,
             mode=request.mode or "text",
-            store_history=bool(request.store_history),
+            store_history=request.store_history,
         )
 
         return TranslationResponse(
@@ -178,6 +244,8 @@ async def translate_image_to_text(
         )
 
     try:
+        logger.info("Image-to-text translation requested")
+
         image_bytes = await image.read()
 
         if not image_bytes:
@@ -202,6 +270,7 @@ async def translate_image_to_text(
             )
 
         ocr_data = ocr_response.json()
+
         contents = ocr_data.get("contents", [])
         full_text = ocr_data.get("text", "").strip()
 
@@ -302,6 +371,8 @@ async def translate_speech_to_text(
         )
 
     try:
+        logger.info("Speech-to-text translation requested")
+
         audio_bytes = await recording.read()
 
         if not audio_bytes:
@@ -315,12 +386,9 @@ async def translate_speech_to_text(
                         recording.filename,
                         audio_bytes,
                         recording.content_type or "audio/wav",
-                        )
-                        },
-                        data={
-                            "language": source_language
-                            },
-                            )
+                    )
+                },
+            )
 
         if speech_response.status_code != 200:
             raise HTTPException(
@@ -329,6 +397,7 @@ async def translate_speech_to_text(
             )
 
         speech_data = speech_response.json()
+
         transcription = speech_data.get("text", "").strip()
         detected_language = speech_data.get("language")
 

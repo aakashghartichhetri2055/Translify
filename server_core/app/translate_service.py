@@ -1,4 +1,5 @@
 import httpx
+
 from app.config import TRANSLATE_SERVICE, SUPPORTED_LANGUAGES
 
 
@@ -10,7 +11,12 @@ class TranslationService:
         if lang not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {lang}")
 
-    async def translate_text(self, text: str, source_language: str, target_language: str):
+    async def translate_text(
+        self,
+        text: str,
+        source_language: str,
+        target_language: str,
+    ) -> str:
         text = text.strip()
 
         if not text:
@@ -29,7 +35,10 @@ class TranslationService:
         }
 
         async with httpx.AsyncClient(timeout=180.0) as client:
-            response = await client.post(f"{self.base_url}/translate", json=payload)
+            response = await client.post(
+                f"{self.base_url}/translate",
+                json=payload,
+            )
 
         if response.status_code != 200:
             raise Exception(
