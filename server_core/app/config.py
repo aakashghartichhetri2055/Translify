@@ -1,9 +1,19 @@
 import os
 from dotenv import load_dotenv
+from sqlalchemy.engine import URL
 
-load_dotenv()
+DATABASE_USER = os.getenv("DATABASE_USER")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+DATABASE_SOCKET = os.getenv("DATABASE_SOCKET")
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = URL.create(
+    drivername = "postgresql",
+    username = DATABASE_USER,
+    password = DATABASE_PASSWORD,
+    database = DATABASE_NAME,
+    host = DATABASE_SOCKET,
+)
 
 TRANSLATE_SERVICE = os.getenv("TRANSLATE_SERVICE", "http://127.0.0.1:9000")
 IMAGE_TO_TEXT_SERVICE = os.getenv("IMAGE_TO_TEXT_SERVICE", "http://127.0.0.1:8001")
