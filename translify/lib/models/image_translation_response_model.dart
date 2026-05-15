@@ -19,8 +19,8 @@ class ImageTranslationResponseModel {
     final bbox = json['bbox'];
 
     return ImageTranslationResponseModel(
-      originalText: json['text'],
-      translatedText: json['translation'],
+      originalText: json['original_text'],
+      translatedText: json['translated_text'],
       x: bbox['x'],
       y: bbox['y'],
       width: bbox['w'],

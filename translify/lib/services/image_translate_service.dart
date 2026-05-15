@@ -32,9 +32,10 @@ Future<List<ImageTranslationResponseModel>> imageTranslationService(
   var responseBody = await response.stream.bytesToString();
 
   if (response.statusCode == 200) {
-    List<dynamic> data = jsonDecode(responseBody);
+    var data = jsonDecode(responseBody);
+    var blocks = data["blocks"];
 
-    final result = data
+    final result = blocks
         .map<ImageTranslationResponseModel>(
           (item) => ImageTranslationResponseModel.fromJson(item),
         )
