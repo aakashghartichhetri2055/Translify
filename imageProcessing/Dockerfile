@@ -1,18 +1,24 @@
 # Use Microsoft's Python development container as base
-FROM mcr.microsoft.com/devcontainers/python:3.10
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu22.04
 
 # Set working directory
 WORKDIR /app
 
+# Remove interactions during setup
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install needed dependencies
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python-is-python3 \
     libgl1 \
     libglib2.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
-RUN python -m pip install --upgrade pip
+RUN python3 -m pip install --upgrade pip
 
 # Install needed packages
 COPY requirements.txt .
