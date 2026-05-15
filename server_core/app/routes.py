@@ -388,6 +388,10 @@ async def translate_speech_to_text(
                         recording.content_type or "audio/wav",
                     )
                 },
+                
+                data = {
+                    "language": source_language
+                }
             )
 
         if speech_response.status_code != 200:
