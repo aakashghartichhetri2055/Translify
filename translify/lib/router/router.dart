@@ -12,6 +12,7 @@ import 'package:translify/views/Conversation_Translation_Views/conversation_tran
 import 'package:translify/views/Camera_Translation_Views/camera_permissions_view.dart';
 import 'package:translify/views/Camera_Translation_Views/initial_camera_view.dart';
 import 'package:translify/views/Camera_Translation_Views/after_picture_taken_view.dart';
+import 'package:translify/views/Settings_View/setting_view.dart';
 
 import 'package:translify/views/Camera_Translation_Views/camera_translation_result.dart';
 import "package:translify/models/image_translation_response_model.dart";
@@ -73,6 +74,10 @@ final GoRouter router = GoRouter(
         return CameraTranslationResult(imagePath: path, detectedText: results);
       },
     ),
+    GoRoute(
+      path: AppRoutes.settings,
+      builder: (context, state) => const SettingView(),
+    ),
   ],
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.home,
 );

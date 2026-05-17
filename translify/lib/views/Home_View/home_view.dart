@@ -9,7 +9,7 @@ class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   void settingsButtonTapped(BuildContext context) {
-    // Nav to settings page
+    context.push(AppRoutes.settings);
   }
 
   void cameraTranslationButtonTapped(BuildContext context) async {
