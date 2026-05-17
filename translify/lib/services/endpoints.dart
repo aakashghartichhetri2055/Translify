@@ -8,4 +8,6 @@ class Endpoints {
   static Uri speechTranslate = Uri.parse("$base/translate/speech-to-text");
 
   static Uri imageTranslate = Uri.parse("$base/translate/image-to-text");
+
+  static Uri userHistory = Uri.parse("$base/history");
 }

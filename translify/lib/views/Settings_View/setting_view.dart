@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/services/log_out_service.dart';
+import 'package:translify/services/get_user_history_service.dart';
 import 'package:translify/router/routes.dart';
 
 class SettingView extends StatefulWidget {
@@ -28,16 +29,25 @@ class _SettingViewState extends State<SettingView> {
 
   // Function to get translation history
   Future<dynamic> getUserHistory() async {
-    var history = await getUserHistoryService();
+    final history = await getUserHistoryService();
+
+    setState(() {
+      userHistory = history;
+      historyLoaded = true;
+    });
   }
 
   // Bool to check if history has loaded yet
   bool historyLoaded = false;
 
+  // Variable that keeps the history
+  late List<dynamic> userHistory;
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    getUserHistory();
   }
 
   @override
