@@ -85,13 +85,23 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
     }
   }
 
+  // Waiting var
+  bool translationWaiting = false;
+
   void translateButtonPressed(BuildContext context) async {
+    setState(() {
+      translationWaiting = true;
+    });
     List<ImageTranslationResponseModel> response =
         await imageTranslationService(
           widget.imagePath,
           sourceLanguage,
           targetLanguage,
         );
+
+    setState(() {
+      translationWaiting = false;
+    });
 
     // Go to the next page
     BuildContext contextCheck = context;
@@ -187,13 +197,19 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
 
             SizedBox(height: MediaQuery.of(context).size.height * .05),
 
-            // The button to take a picture
-            Button(
-              text: "Translate!",
-              action: () => translateButtonPressed(context),
-              backgroundColor: TranslifyColors.cameraTranslationAccentColor,
-              textColor: TranslifyColors.darkButtonText,
-            ),
+            !translationWaiting
+                ?
+                  // The button to take a picture
+                  Button(
+                    text: "Translate!",
+                    action: () => translateButtonPressed(context),
+                    backgroundColor:
+                        TranslifyColors.cameraTranslationAccentColor,
+                    textColor: TranslifyColors.darkButtonText,
+                  )
+                : CircularProgressIndicator(
+                    color: TranslifyColors.cameraTranslationAccentColor,
+                  ),
           ],
         ),
       ),
