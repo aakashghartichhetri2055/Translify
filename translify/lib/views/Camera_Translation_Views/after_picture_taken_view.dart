@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:translify/languages/languages.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/button.dart';
 import 'package:translify/widgets/language_selector.dart';
+import 'package:translify/router/routes.dart';
 import 'dart:io';
+import 'package:translify/services/image_translate_service.dart';
+import "package:translify/models/image_translation_response_model.dart";
 
 class AfterPictureTakenView extends StatefulWidget {
   final String imagePath;
@@ -81,8 +85,35 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
     }
   }
 
-  void translateButtonPressed() async {
-    // Here we have the logic to translate things
+  // Waiting var
+  bool translationWaiting = false;
+
+  void translateButtonPressed(BuildContext context) async {
+    setState(() {
+      translationWaiting = true;
+    });
+    List<ImageTranslationResponseModel> response =
+        await imageTranslationService(
+          widget.imagePath,
+          sourceLanguage,
+          targetLanguage,
+        );
+
+    setState(() {
+      translationWaiting = false;
+    });
+
+    // Go to the next page
+    BuildContext contextCheck = context;
+
+    if (!contextCheck.mounted) {
+      return;
+    } else {
+      context.push(
+        AppRoutes.cameraTranslationResult,
+        extra: {"path": widget.imagePath, "results": response},
+      );
+    }
   }
 
   @override
@@ -108,60 +139,79 @@ class _AfterPictureTakenViewState extends State<AfterPictureTakenView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TranslifyColors.backgroundColor,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        // Push the replacement back to the camera page
+        if (didPop) {
+          return;
+        } else {
+          context.pushReplacement(AppRoutes.initialCamera);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: TranslifyColors.backgroundColor,
 
-      body: Column(
-        children: [
-          // Preview of the image
-          SizedBox(
-            height: MediaQuery.of(context).size.height * .6,
-            width: MediaQuery.of(context).size.width,
-            child: Image.file(File(widget.imagePath)),
-          ),
+        body: Column(
+          children: [
+            // Preview of the image
+            SizedBox(
+              height: MediaQuery.of(context).size.height * .6,
+              width: MediaQuery.of(context).size.width,
+              child: Image.file(File(widget.imagePath)),
+            ),
 
-          SizedBox(height: MediaQuery.of(context).size.height * .05),
+            SizedBox(height: MediaQuery.of(context).size.height * .05),
 
-          // The button to select the target language
-          LanguageSelector(
-            updateLanguageChoice: (langauge) => {
-              updateTargetLanguage(langauge),
-            },
-            buttonText: targetLanguageButtonMessage,
-            buttonBackgroundColor: TranslifyColors.cameraTranslationAccentColor,
-            buttonTextColor: TranslifyColors.darkButtonText,
-            menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
-            menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
-            currentLanguage: targetLanguage,
-            disabledColor: TranslifyColors.disabledOptionColor,
-          ),
+            // The button to select the source language
+            LanguageSelector(
+              updateLanguageChoice: (langauge) => {
+                updateSourceLanguage(langauge),
+              },
+              buttonText: sourceLanguageButtonMessage,
+              buttonBackgroundColor:
+                  TranslifyColors.cameraTranslationAccentColor,
+              buttonTextColor: TranslifyColors.darkButtonText,
+              menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
+              menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
+              currentLanguage: sourceLanguage,
+              disabledColor: TranslifyColors.disabledOptionColor,
+            ),
 
-          SizedBox(height: MediaQuery.of(context).size.height * .025),
+            SizedBox(height: MediaQuery.of(context).size.height * .025),
 
-          // The button to select the source language
-          LanguageSelector(
-            updateLanguageChoice: (langauge) => {
-              updateSourceLanguage(langauge),
-            },
-            buttonText: sourceLanguageButtonMessage,
-            buttonBackgroundColor: TranslifyColors.cameraTranslationAccentColor,
-            buttonTextColor: TranslifyColors.darkButtonText,
-            menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
-            menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
-            currentLanguage: sourceLanguage,
-            disabledColor: TranslifyColors.disabledOptionColor,
-          ),
+            // The button to select the target language
+            LanguageSelector(
+              updateLanguageChoice: (langauge) => {
+                updateTargetLanguage(langauge),
+              },
+              buttonText: targetLanguageButtonMessage,
+              buttonBackgroundColor:
+                  TranslifyColors.cameraTranslationAccentColor,
+              buttonTextColor: TranslifyColors.darkButtonText,
+              menuItemBackgroundColor: TranslifyColors.nonAdminButtonColor,
+              menuItemTextColor: TranslifyColors.cameraTranslationAccentColor,
+              currentLanguage: targetLanguage,
+              disabledColor: TranslifyColors.disabledOptionColor,
+            ),
 
-          SizedBox(height: MediaQuery.of(context).size.height * .05),
+            SizedBox(height: MediaQuery.of(context).size.height * .05),
 
-          // The button to take a picture
-          Button(
-            text: "Translate!",
-            action: translateButtonPressed,
-            backgroundColor: TranslifyColors.cameraTranslationAccentColor,
-            textColor: TranslifyColors.darkButtonText,
-          ),
-        ],
+            !translationWaiting
+                ?
+                  // The button to take a picture
+                  Button(
+                    text: "Translate!",
+                    action: () => translateButtonPressed(context),
+                    backgroundColor:
+                        TranslifyColors.cameraTranslationAccentColor,
+                    textColor: TranslifyColors.darkButtonText,
+                  )
+                : CircularProgressIndicator(
+                    color: TranslifyColors.cameraTranslationAccentColor,
+                  ),
+          ],
+        ),
       ),
     );
   }

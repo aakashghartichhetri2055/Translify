@@ -1,5 +1,6 @@
 // Define the route names used for routing
 class AppRoutes {
+  static const authCheck = "/authCheck";
   static const login = "/login";
   static const signUp = "/signup";
   static const afterNewUser = "/newUserPrivacyChoice";
@@ -8,4 +9,6 @@ class AppRoutes {
   static const cameraPermission = "/cameraPermission";
   static const initialCamera = "/camera";
   static const afterCamera = "/picture/:sourceLang/:targetLang";
+  static const cameraTranslationResult = "/cameraTranslationResult";
+  static const settings = "/settings";
 }

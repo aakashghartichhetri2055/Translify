@@ -83,6 +83,9 @@ class _ConversationTranslationViewState
   bool recording = false;
   String? currentSpeaker;
 
+  // Variable to indicate audio is being processed
+  bool translationServiceWaiting = false;
+
   @override
   void initState() {
     // Setup recorder object here
@@ -159,14 +162,16 @@ class _ConversationTranslationViewState
       target = speakerOneCurrentLanguage;
     }
 
+    setState(() {
+      translationServiceWaiting = true;
+    });
+
     // Begin the process of sending the recording to the backend here
     (String, String) response = await speechTranslateService(
       filePath!,
       source,
       target,
     );
-
-    print(response);
 
     if (currentSpeaker == "primary") {
       setState(() {
@@ -185,6 +190,7 @@ class _ConversationTranslationViewState
     setState(() {
       recording = false;
       currentSpeaker = null;
+      translationServiceWaiting = false;
     });
   }
 
@@ -375,14 +381,25 @@ class _ConversationTranslationViewState
             SizedBox(height: MediaQuery.of(context).size.height * .05),
 
             recording
-                ? RecordingControls(
-                    cancelButtonMessage: "Cancel Recording",
-                    cancelButtonFunction: cancelRecording,
-                    endButtonMessage: "Finish Recording",
-                    endButtonFunction: endRecording,
-                    buttonTextColor: TranslifyColors.headerTextColor,
-                    buttonBackgroundColor: TranslifyColors.nonAdminButtonColor,
-                  )
+                ? translationServiceWaiting
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: currentSpeaker == "primary"
+                                ? TranslifyColors
+                                      .convesationTranslationAccentColor
+                                : TranslifyColors
+                                      .conversationTranslationSecondSpeakerColor,
+                          ),
+                        )
+                      : RecordingControls(
+                          cancelButtonMessage: "Cancel Recording",
+                          cancelButtonFunction: cancelRecording,
+                          endButtonMessage: "Finish Recording",
+                          endButtonFunction: endRecording,
+                          buttonTextColor: TranslifyColors.headerTextColor,
+                          buttonBackgroundColor:
+                              TranslifyColors.nonAdminButtonColor,
+                        )
                 : MicrophoneRow(
                     primarySpeakerColor:
                         TranslifyColors.convesationTranslationAccentColor,
@@ -398,11 +415,3 @@ class _ConversationTranslationViewState
     );
   }
 }
-
-/**
- * 
- * To Do 
- * 1. Set up the route for the backend server to receive the audio file
- * 2. Set up the speech processing
- * 4. Test
- */

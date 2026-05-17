@@ -12,9 +12,18 @@ import 'package:translify/views/Conversation_Translation_Views/conversation_tran
 import 'package:translify/views/Camera_Translation_Views/camera_permissions_view.dart';
 import 'package:translify/views/Camera_Translation_Views/initial_camera_view.dart';
 import 'package:translify/views/Camera_Translation_Views/after_picture_taken_view.dart';
+import 'package:translify/views/Settings_View/setting_view.dart';
+import 'package:translify/views/Authentication_Views/auth_check_view.dart';
+
+import 'package:translify/views/Camera_Translation_Views/camera_translation_result.dart';
+import "package:translify/models/image_translation_response_model.dart";
 
 final GoRouter router = GoRouter(
   routes: [
+    GoRoute(
+      path: AppRoutes.authCheck,
+      builder: (context, state) => const AuthCheckView(),
+    ),
     GoRoute(
       path: AppRoutes.login,
       builder: (context, state) => const LoginView(),
@@ -57,6 +66,23 @@ final GoRouter router = GoRouter(
         );
       },
     ),
+    GoRoute(
+      path: AppRoutes.cameraTranslationResult,
+      builder: (context, state) {
+        // Get the data from the route state
+        final data = state.extra as Map<String, dynamic>;
+
+        final String path = data["path"] as String;
+        final List<ImageTranslationResponseModel> results =
+            data["results"] as List<ImageTranslationResponseModel>;
+
+        return CameraTranslationResult(imagePath: path, detectedText: results);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.settings,
+      builder: (context, state) => const SettingView(),
+    ),
   ],
-  initialLocation: AppRoutes.home,
+  initialLocation: AppRoutes.authCheck,
 );

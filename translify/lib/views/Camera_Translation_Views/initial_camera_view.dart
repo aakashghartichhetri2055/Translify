@@ -84,7 +84,10 @@ class _InitialCameraTranslationViewState
     if (!contextCheck.mounted) {
       return;
     } else {
-      context.push(
+      // Push the replacement to force the camera to stop being used
+      // If this were a regular push then the camera would still be in use and any privacy indicators (like green dot in upper right) would still be activated
+      // Kinda hacky in my opinion, since it not accounted for, in the next screen the back button will take you back to the homepage, instead of the camera view
+      context.pushReplacement(
         "/picture/$sourceLanguage/$targetLanguage",
         extra: picture.path,
       );
@@ -209,27 +212,6 @@ class _InitialCameraTranslationViewState
                         height: MediaQuery.of(context).size.height * .05,
                       ),
 
-                      // The button to select the target language
-                      LanguageSelector(
-                        updateLanguageChoice: (langauge) => {
-                          updateTargetLanguage(langauge),
-                        },
-                        buttonText: targetLanguageButtonMessage,
-                        buttonBackgroundColor:
-                            TranslifyColors.cameraTranslationAccentColor,
-                        buttonTextColor: TranslifyColors.darkButtonText,
-                        menuItemBackgroundColor:
-                            TranslifyColors.nonAdminButtonColor,
-                        menuItemTextColor:
-                            TranslifyColors.cameraTranslationAccentColor,
-                        currentLanguage: targetLanguage,
-                        disabledColor: TranslifyColors.disabledOptionColor,
-                      ),
-
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * .025,
-                      ),
-
                       // The button to select the source language
                       LanguageSelector(
                         updateLanguageChoice: (langauge) => {
@@ -244,6 +226,27 @@ class _InitialCameraTranslationViewState
                         menuItemTextColor:
                             TranslifyColors.cameraTranslationAccentColor,
                         currentLanguage: sourceLanguage,
+                        disabledColor: TranslifyColors.disabledOptionColor,
+                      ),
+
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * .025,
+                      ),
+
+                      // The button to select the target language
+                      LanguageSelector(
+                        updateLanguageChoice: (langauge) => {
+                          updateTargetLanguage(langauge),
+                        },
+                        buttonText: targetLanguageButtonMessage,
+                        buttonBackgroundColor:
+                            TranslifyColors.cameraTranslationAccentColor,
+                        buttonTextColor: TranslifyColors.darkButtonText,
+                        menuItemBackgroundColor:
+                            TranslifyColors.nonAdminButtonColor,
+                        menuItemTextColor:
+                            TranslifyColors.cameraTranslationAccentColor,
+                        currentLanguage: targetLanguage,
                         disabledColor: TranslifyColors.disabledOptionColor,
                       ),
 
