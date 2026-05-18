@@ -3,6 +3,7 @@ import 'package:translify/colors/colors.dart';
 import 'package:translify/services/get_user_status.dart';
 import 'package:translify/router/routes.dart';
 import 'package:go_router/go_router.dart';
+import 'package:translify/services/set_translation_history.dart';
 
 class AuthCheckView extends StatefulWidget {
   const AuthCheckView({super.key});
@@ -26,6 +27,7 @@ class _AuthCheckViewState extends State<AuthCheckView> {
     if (authGood) {
       router.go(AppRoutes.home);
     } else {
+      await setTranslationHistory("False");
       router.go(AppRoutes.login);
     }
   }

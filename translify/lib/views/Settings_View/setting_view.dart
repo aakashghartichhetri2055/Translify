@@ -38,6 +38,10 @@ class _SettingViewState extends State<SettingView> {
     });
   }
 
+  void translationHistoryButtonPressed(BuildContext context) {
+    context.push(AppRoutes.afterNewUser);
+  }
+
   // Bool to check if history has loaded yet
   bool historyLoaded = false;
 
@@ -113,11 +117,25 @@ class _SettingViewState extends State<SettingView> {
 
           // A button to log out
           Center(
-            child: Button(
-              text: "Log Out",
-              action: () => logOutButtonPressed(context),
-              backgroundColor: TranslifyColors.adminButtonColor,
-              textColor: TranslifyColors.adminButtonTextColor,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Button(
+                  text: "Log Out",
+                  action: () => logOutButtonPressed(context),
+                  backgroundColor: TranslifyColors.adminButtonColor,
+                  textColor: TranslifyColors.adminButtonTextColor,
+                ),
+
+                SizedBox(width: 20),
+
+                Button(
+                  text: "Save Translation History",
+                  action: () => translationHistoryButtonPressed(context),
+                  backgroundColor: TranslifyColors.adminButtonColor,
+                  textColor: TranslifyColors.adminButtonTextColor,
+                ),
+              ],
             ),
           ),
         ],

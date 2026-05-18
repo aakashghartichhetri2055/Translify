@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:translify/router/routes.dart';
 import 'package:translify/colors/colors.dart';
 import 'package:translify/widgets/button.dart';
+import 'package:translify/services/set_translation_history.dart';
+import 'package:translify/services/get_history_setting.dart';
 
 class AfterNewUserView extends StatefulWidget {
   const AfterNewUserView({super.key});
@@ -17,10 +19,36 @@ class AfterNewUserView extends StatefulWidget {
 class _AfterNewUserViewState extends State<AfterNewUserView> {
   bool switchState = false;
 
-  void switchPressed(bool value) {
+  Future<void> switchPressed(bool value) async {
+    String setting = value ? "True" : "False";
+
+    await setTranslationHistory(setting);
+
     setState(() {
       switchState = value;
     });
+  }
+
+  Future<void> loadSwitchState() async {
+    String setting = await getHistorySetting();
+
+    if (setting == "null" || setting == "False") {
+      setState(() {
+        switchState = false;
+      });
+    } else {
+      setState(() {
+        switchState = true;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    loadSwitchState();
   }
 
   void buttonPressed(BuildContext context) {

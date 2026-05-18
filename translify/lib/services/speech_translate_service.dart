@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+import 'package:translify/services/get_history_setting.dart';
 import 'dart:convert';
 import "endpoints.dart";
 import "get_token.dart";
@@ -9,6 +10,7 @@ Future<(String, String)> speechTranslateService(
   String targetLang,
 ) async {
   String accessToken = await getToken();
+  String historySetting = await getHistorySetting();
 
   var request = http.MultipartRequest("POST", Endpoints.speechTranslate);
   request.files.add(
@@ -24,7 +26,7 @@ Future<(String, String)> speechTranslateService(
   request.fields["source_language"] = originalLang;
   request.fields["target_language"] = targetLang;
 
-  request.fields["store_history"] = "false";
+  request.fields["store_history"] = historySetting;
 
   http.StreamedResponse response = await request.send();
 

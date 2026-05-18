@@ -3,6 +3,7 @@ import 'dart:convert';
 import "endpoints.dart";
 import "get_token.dart";
 import "package:translify/models/image_translation_response_model.dart";
+import 'package:translify/services/get_history_setting.dart';
 
 Future<List<ImageTranslationResponseModel>> imageTranslationService(
   String filepath,
@@ -10,6 +11,7 @@ Future<List<ImageTranslationResponseModel>> imageTranslationService(
   String targetLang,
 ) async {
   String accessToken = await getToken();
+  String historySetting = await getHistorySetting();
 
   var request = http.MultipartRequest("POST", Endpoints.imageTranslate);
   request.files.add(
@@ -25,7 +27,7 @@ Future<List<ImageTranslationResponseModel>> imageTranslationService(
   request.fields["source_language"] = originalLang;
   request.fields["target_language"] = targetLang;
 
-  request.fields["store_history"] = "false";
+  request.fields["store_history"] = historySetting;
 
   http.StreamedResponse response = await request.send();
 
