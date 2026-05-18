@@ -97,7 +97,7 @@ Additional features of the app include the following:
 
 ## Getting Started
 
-The way this project is setup currently is assuming that it will be deployed on Google Cloud. If you wanted to run this locally, you sould have at the a computer with enough memory, ideally ~24GB of RAM to be safe.
+The way this project is setup currently is assuming that it will be deployed on Google Cloud. If you want to run this locally, you should have a computer with enough memory, ideally ~24GB of RAM to be safe.
 
 Detailed instructions follow below for how to run this project locally. You should read all of them (which includes following step 1 and reading the README mentioned there) before starting:
 
