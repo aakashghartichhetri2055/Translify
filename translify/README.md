@@ -37,8 +37,19 @@ Currently targeting Android only. IOS planned if time permits.
 
 6. Install all necessary project packages with the following: `flutter pub get`
 
-7. Run the following to see your list of devices: `flutter emulators && flutter devices`
+7. You have to change a variable within this project:
+   - In `/translify/lib/services/endpoints.dart` you will have to change the `String base` variable according to the following:
+   - If you are using an emulated device, then change the value of the variable to `"http://10.0.2.2:8080"`
+      - The port is 8080 if you follow the instructions in the README on root of this repo, else change the port accordingly
+   - If you are using a physical device, then you will need to figure out the private ip of you computer within your local network
+      - On MacOS and Linux, you can use the `ipconfig` tool to figure this number out. Try looking at interface `en0`.
+      - If all else fails, you can search for more detailed instructions on the Internet
+      - The value of the variable should be the following: `http://<YOUR_IP_HERE>:8080`
+         - The port is 8080 if you follow the instructions in the README on root of this repo, else change the port accordingly
+      - Both your computer running Android Studio and your Android device have to be on the same Wi-Fi or local network
+
+8. Run the following to see your list of devices: `flutter emulators && flutter devices`
    - Usually, you can start up emulated devices in Android Studio
 
-8. Do the following to run the app on your chosen device: `flutter run -d <device_id>`
+9. Do the following to run the app on your chosen device: `flutter run -d <device_id>`
    - `device_id` is the second column of the previous step
